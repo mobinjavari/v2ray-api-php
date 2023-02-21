@@ -145,4 +145,11 @@ class xui_api
             default:return "Error, url could not be created";
         }
     }
+
+    public function del($id) : bool
+    {
+        return (bool)$this->request(
+            "xui/inbound/del/$id"
+        );
+    }
 }
