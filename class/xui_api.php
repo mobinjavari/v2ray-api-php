@@ -103,4 +103,36 @@ class xui_api
 
         return $list;
     }
+
+    public function url(string $type, string $guid, string $remark, string $network, int $port) : string
+    {
+        switch ($type)
+        {
+            case "vmess":
+                $vmess_url = "vmess://";
+                $path = $network == "ws" ? "/" : "";
+                $vmess_settings = [
+                    "v" => "2",
+                    "ps" => $remark,
+                    "add" => $this->address,
+                    "port" => $port,
+                    "id" => $guid,
+                    "aid" => 0,
+                    "net" => $network,
+                    "type" => "none",
+                    "host" => "",
+                    "path" => $path,
+                    "tls" => "none"
+                ];
+                $vmess_base = base64_encode(json_encode($vmess_settings));
+                return $vmess_url.$vmess_base;
+
+            case "vless":
+                $vless_url = "vless://$guid";
+                $vless_url .= "@$this->address:$port";
+                $vless_url .= "?type=$network&security=none&path=/";
+                $vless_url .= "#$remark";
+                return $vless_url;
+        }
+    }
 }
