@@ -92,6 +92,14 @@ class xui_api
                     $result[$list_andis]["streamSettings"] = json_decode($list[$num]["streamSettings"],true);
                     $result[$list_andis]["tag"] = $list[$num]["tag"];
                     $result[$list_andis]["sniffing"] = json_decode($list[$num]["sniffing"],true);
+                    $result[$list_andis]["url"] =
+                        $this->url(
+                            $result[$list_andis]["protocol"],
+                            $result[$list_andis]["settings"]["clients"][0]["id"],
+                            $result[$list_andis]["remark"],
+                            $result[$list_andis]["streamSettings"]["network"],
+                            $result[$list_andis]["port"]
+                        );
                     $list_andis++;
                 }
             }
@@ -133,6 +141,8 @@ class xui_api
                 $vless_url .= "?type=$network&security=none&path=/";
                 $vless_url .= "#$remark";
                 return $vless_url;
+
+            default:return "Error, url could not be created";
         }
     }
 }
