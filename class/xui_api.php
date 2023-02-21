@@ -64,15 +64,16 @@ class xui_api
         {
             $result = [];
 
-            for ($list_andis = 0, $num = 0; $num <= count($list); $num++)
+            for ($list_andis = 0, $num = 0; $num < count($list); $num++)
             {
                 $filter_status = 1;
-                $port = $filter["port"];
-                $uuid = $filter["uuid"];
-                $protocol = $filter["protocol"];
+                $port = empty($filter["port"]) ? "" : (int)$filter["port"];
+                $uuid = empty($filter["uuid"]) ? "" : $filter["uuid"];
+                $protocol = empty($filter["protocol"]) ? "" : $filter["protocol"];
+                $list_settings = json_decode($list[$num]["settings"],true);
 
-                if(!empty($port) && $port !== $list[$num]["port"]) $filter_status = 0;
-                if(!empty($uuid) && $uuid !== $list[$num]["uuid"]) $filter_status = 0;
+                if(!empty($port) && $port !== (int)$list[$num]["port"]) $filter_status = 0;
+                if(!empty($uuid) && $uuid !== $list_settings["clients"][0]["id"]) $filter_status = 0;
                 if(!empty($protocol) && $protocol !== $list[$num]["protocol"]) $filter_status = 0;
 
                 if($filter_status)
