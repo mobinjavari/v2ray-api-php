@@ -28,7 +28,6 @@ class xui_api
 
     public function request(string $method, array | string $param = "") : array
     {
-        $value = is_array($param) ? json_encode($param) : $param;
         $handle = curl_init("$this->address:$this->port/$method");
         curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($handle, CURLOPT_ENCODING, "");
@@ -39,8 +38,12 @@ class xui_api
         curl_setopt($handle, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($handle, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-        curl_setopt($handle, CURLOPT_POSTFIELDS, $value);
+        if (is_array($param))
+        {
+            $param = json_encode($param);
+            curl_setopt($handle, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+        }
+        curl_setopt($handle, CURLOPT_POSTFIELDS, $param);
         $response = json_decode(curl_exec($handle),true);
         curl_close($handle);
         return $response;
@@ -146,10 +149,53 @@ class xui_api
         }
     }
 
+    /**
+     * @throws Exception
+     */
+    private function guidv4() {
+        $data = random_bytes(16);
+        assert(strlen($data) == 16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function add(
+        string $protocol = "vmess",
+        int $total = 0,
+        string $network = "ws",
+        string $remark = "",
+        int $port = 0,
+        int $ex_time = 0
+    ) : bool
+    {
+        $guidv4 = $this->guidv4();
+        $remark = empty($remark) ? "api" : $remark;
+        $$total = $total * 1024 * 1024 * 1024;
+        $port = $port == 0 ? rand(11111,65335) : $port;
+        $settings = match ($protocol) {
+            "vmess" => '{"clients": [{"id": "'.$guidv4.'","alterId": 0}],"disableInsecureEncryption": false}',
+            "vless" => '{"clients": [{"id": "'.$guidv4.'","flow": "xtls-rprx-direct"}],"decryption": "none","fallbacks": []}'
+        };
+        $stream_settings = match ($network) {
+            "tcp" => '{"network": "tcp","security": "none","tcpSettings": {"header": {"type": "none"}}}',
+            "ws" => '{"network": "ws","security": "none","wsSettings": {"path": "/","headers": {}}}'
+        };
+        $post = 'up=0&down=0&total='.$total.'&remark='.$remark.'&enable=true';
+        $post .= '&expiryTime='.$ex_time.'&listen=&port='.$port.'&protocol='.$protocol;
+        $post .= '&settings='.$settings.'&streamSettings='.$stream_settings;
+        $post .= '&sniffing={"enabled": true,"destOverride": ["http","tls"]}';
+
+        return (bool)$this->request("xui/inbound/add",$post);
+    }
+
     public function del($id) : bool
     {
         return (bool)$this->request(
             "xui/inbound/del/$id"
-        );
+        )["success"];
     }
 }
