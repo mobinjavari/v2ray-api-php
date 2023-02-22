@@ -108,7 +108,7 @@ class xui_api
             }
 
             if(count($result) == 1) return $result[0];
-            elseif($result == 0) return [];
+            elseif(count($result) == 0) return [];
             else return $result;
         }
 
