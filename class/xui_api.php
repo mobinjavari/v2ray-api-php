@@ -174,7 +174,7 @@ class xui_api
     {
         $guidv4 = $this->guidv4();
         $remark = empty($remark) ? "api" : $remark;
-        $$total = $total * 1024 * 1024 * 1024;
+        $total = $total * 1024 * 1024 * 1024;
         $port = $port == 0 ? rand(11111,65335) : $port;
         $settings = match ($protocol) {
             "vmess" => '{"clients": [{"id": "'.$guidv4.'","alterId": 0}],"disableInsecureEncryption": false}',
