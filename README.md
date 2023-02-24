@@ -14,3 +14,7 @@
     <li>...</li>
   </ol>
 </div>
+
+<div align="cnter">
+      <a href="https://t.me/mobinjavari" title="Telegram"><img alt="Telegram" src="https://img.shields.io/badge/-Telegram-252932?labelColor=4C8EDA&style=flat&logo=Telegram&logoColor=20232A"></a>
+</div>
