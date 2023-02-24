@@ -1,7 +1,7 @@
 <div align="center">
   <h1>V2Ray API with PHP</h1>
   <p>A complete class to connect to the xui panel</p>
-  <p><a href="./documents/ubuntu_server.md">How config server</a> / <a href="./documents/xui_api.md">How use class </a></p><br><br>
+  <p><a href="./documents/ubuntu_server.md">How config server</a> / <a href="./documents/xui_api.md">How use class </a> / <a href="./class/xui_api.php">Source code</a></p><br><br>
 </div>
 
 <div align="left">
