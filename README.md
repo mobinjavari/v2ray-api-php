@@ -13,7 +13,7 @@
     <li>Get user information and characteristics</li>
     <li>...</li>
   </ol>
-  <p align="center"><a href="./class/xui_tls_api.php">API For TLS</a> / <a href="./class/xui_api.php">Normal API</a><br><br></p>
+  <p align="center"><a href="./class/xui_tls_api.php">API For Fronting&TLS</a> / <a href="./class/xui_api.php">Normal API</a><br><br></p>
 </div>
 
 <div align="center">
