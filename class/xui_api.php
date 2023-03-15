@@ -10,21 +10,37 @@ class xui_api
 {
     private string $address;
 
-    private int $port;
+    private string $port;
 
     private string $username;
 
     private string $password;
 
-    public function __construct(string $address, int $port, string $username, string $password)
+    private string $cookies_directory;
+
+    private string $cookie_txt_path;
+
+    public function __construct(string $address, string $port, string $username, string $password)
     {
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->cookies_directory = "./.cookies/";
+        $this->cookie_txt_path = "$this->cookies_directory$this->address.$this->port.txt";
 
-        if(!is_dir("./.cookies")) mkdir("./.cookies");
-        if(!file_exists("./.cookies/$this->address.txt")) $this->login();
+        if(!is_dir($this->cookies_directory)) mkdir($this->cookies_directory);
+
+        if(!file_exists($this->cookie_txt_path))
+        {
+            $login = $this->login();
+
+            if(!$login["success"])
+            {
+                unlink($this->cookie_txt_path);
+                exit($login["msg"]);
+            }
+        }
     }
 
     public function request(string $method, array | string $param = "") : array
@@ -35,8 +51,8 @@ class xui_api
             CURLOPT_URL => $URL,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
-            CURLOPT_COOKIEFILE => "./.cookies/$this->address.txt",
-            CURLOPT_COOKIEJAR => "./.cookies/$this->address.txt",
+            CURLOPT_COOKIEFILE => $this->cookie_txt_path,
+            CURLOPT_COOKIEJAR => $this->cookie_txt_path,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
@@ -62,9 +78,9 @@ class xui_api
         };
     }
 
-    public function login() : bool
+    public function login() : array
     {
-        return (bool)$this->request("login",[
+        return $this->request("login",[
             "username" => $this->username,
             "password" => $this->password
         ]);
