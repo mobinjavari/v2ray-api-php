@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection MethodShouldBeFinalInspection */
 
 /*\
  * | - Author : github.com/mobinjavari
@@ -23,30 +23,43 @@ class xui_api
         $this->username = $username;
         $this->password = $password;
 
-        if(!file_exists('./.cookie.txt')) $this->login();
+        if(!is_dir("./.cookies")) mkdir("./.cookies");
+        if(!file_exists("./.cookies/$this->address.txt")) $this->login();
     }
 
     public function request(string $method, array | string $param = "") : array
     {
-        $handle = curl_init("$this->address:$this->port/$method");
-        curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($handle, CURLOPT_ENCODING, "");
-        curl_setopt($handle, CURLOPT_COOKIEFILE, "./.cookie.txt");
-        curl_setopt($handle, CURLOPT_COOKIEJAR, "./.cookie.txt");
-        curl_setopt($handle, CURLOPT_MAXREDIRS, 10);
-        curl_setopt($handle, CURLOPT_TIMEOUT, 0);
-        curl_setopt($handle, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        curl_setopt($handle, CURLOPT_CUSTOMREQUEST, "POST");
-        if (is_array($param))
-        {
-            $param = json_encode($param);
-            curl_setopt($handle, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-        }
-        curl_setopt($handle, CURLOPT_POSTFIELDS, $param);
-        $response = json_decode(curl_exec($handle),true);
-        curl_close($handle);
-        return $response;
+        $URL = "$this->address:$this->port/$method";
+        $POST = is_array($param) ? json_encode($param) : $param;
+        $options = [
+            CURLOPT_URL => $URL,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_COOKIEFILE => "./.cookies/$this->address.txt",
+            CURLOPT_COOKIEJAR => "./.cookies/$this->address.txt",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $POST
+        ];
+
+        if(is_array($param)) $options[CURLOPT_HTTPHEADER] = ["Content-Type: application/json"];
+
+        $ch = curl_init();
+        curl_setopt_array($ch, $options);
+        $response = curl_exec($ch);
+        $http_code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return match ($http_code) {
+            200 => json_decode($response,true),
+            default => [
+                "msg" => "Status Code : $http_code",
+                "success" => false
+            ]
+        };
     }
 
     public function login() : bool
@@ -59,7 +72,7 @@ class xui_api
 
     public function list(array $filter = []) : array
     {
-        $list = $this->request(
+        $list = (array)$this->request(
             "xui/inbound/list"
         )["obj"];
 
@@ -151,6 +164,7 @@ class xui_api
 
     /**
      * @throws Exception
+     * @noinspection MissingReturnTypeInspection
      */
     private function guidv4() {
         $data = random_bytes(16);
@@ -173,29 +187,75 @@ class xui_api
     ) : bool
     {
         $guidv4 = $this->guidv4();
-        $remark = empty($remark) ? "api" : $remark;
+        $remark = empty($remark) ? "Created by API" : $remark;
         $total = $total * 1024 * 1024 * 1024;
         $port = $port == 0 ? rand(11111,65335) : $port;
+        $empty_object = new stdClass();
         $settings = match ($protocol) {
-            "vmess" => '{"clients": [{"id": "'.$guidv4.'","alterId": 0}],"disableInsecureEncryption": false}',
-            "vless" => '{"clients": [{"id": "'.$guidv4.'","flow": "xtls-rprx-direct"}],"decryption": "none","fallbacks": []}'
+            "vmess" => json_encode([
+                "clients" => [
+                    ["id" => "$guidv4","alterId" => 0]
+                ],
+                "disableInsecureEncryption" => false
+            ]),
+            "vless" => json_encode([
+                "clients" => [
+                    ["id" => "$guidv4","flow" => "xtls-rprx-direct"]
+                ],
+                "decryption" => "none","fallbacks" => $empty_object
+            ])
         };
         $stream_settings = match ($network) {
-            "tcp" => '{"network": "tcp","security": "none","tcpSettings": {"header": {"type": "none"}}}',
-            "ws" => '{"network": "ws","security": "none","wsSettings": {"path": "/","headers": {}}}'
+            "tcp" => json_encode([
+                "network" => "tcp",
+                "security" => "none",
+                "tcpSettings" => [
+                    "header" => [
+                        "type" => "none"
+                    ]
+                ]
+            ]),
+            "ws" => json_encode([
+                "network" => "ws",
+                "security" => "none",
+                "wsSettings" => [
+                    "path" => "/",
+                    "headers" => $empty_object
+                ]
+            ])
         };
-        $post = 'up=0&down=0&total='.$total.'&remark='.$remark.'&enable=true';
-        $post .= '&expiryTime='.$ex_time.'&listen=&port='.$port.'&protocol='.$protocol;
-        $post .= '&settings='.$settings.'&streamSettings='.$stream_settings;
-        $post .= '&sniffing={"enabled": true,"destOverride": ["http","tls"]}';
+        $post = [
+            "up" => 0,
+            "down" => 0,
+            "total" => $total,
+            "remark" => $remark,
+            "enable" => true,
+            "expiryTime" => $ex_time,
+            "listen" => "",
+            "port" => $port,
+            "protocol" => $protocol,
+            "settings" => $settings,
+            "streamSettings" => $stream_settings,
+            "sniffing" => json_encode([
+                "enabled" => true,
+                "destOverride" => ["http","tls"]
+            ])
+        ];
 
-        return (bool)$this->request("xui/inbound/add",$post);
+        return (bool)$this->request("xui/inbound/add",$post)["success"];
     }
 
-    public function del($id) : bool
+    public function del(int $id) : bool
     {
         return (bool)$this->request(
             "xui/inbound/del/$id"
         )["success"];
+    }
+
+    public function status() : array
+    {
+        return $this->request(
+            "server/status"
+        )["obj"];
     }
 }
