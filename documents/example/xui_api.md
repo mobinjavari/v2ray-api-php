@@ -25,6 +25,9 @@
         <p><sub>You can filter the received amounts - example :</sub></p>
         <pre><code>$filters = ["port" => 20394]; 
 $example->list($filters); # A specific user</code></pre>
-        <p><sub>The values that the filter supports port / protocol / uuid</sub></p>
+        <p><sub>The values that the filter supports port / protocol / uuid</sub></p><br><br>
+        <li>Get server status and specifications</li><br>
+        <pre><code>$example->status(); # Get server</code></pre>
+        <p><sub>Returns an array of data</sub></p>
     </ul>
 </div>
