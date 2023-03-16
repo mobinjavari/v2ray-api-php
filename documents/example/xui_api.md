@@ -18,7 +18,7 @@
         <pre><code>$example->add("vmess",10,"ws","example",0,0); # Add custom user </code></pre><br><br>
         <li>Use the following code sample to update the user (<small>Port value is required</small>)</li><br>
         <pre><code>$example->update(["port" => 3443]); # Update user</code></pre>
-        <p><sub>Supported values: enable, reset, remark, expirationTime, protocol, newPort</sub></p>
+        <p><sub>Supported values: enable, reset, remark, expiryTime, protocol, newPort</sub></p>
         <pre><code>$example->update(["port" => 3443,"enable" => false,"reset" => true,"remark" => "Update","protocol" => "vless"]); # New Data</code></pre><br><br>
         <li>User deletion code example</li><br>
         <pre><code>$example->del(1); # Delete user</code></pre>
