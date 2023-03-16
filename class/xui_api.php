@@ -116,10 +116,12 @@ class xui_api
                     $result[$list_andis]["id"] = (int)$list[$num]["id"];
                     $result[$list_andis]["up"] = (int)$list[$num]["up"];
                     $result[$list_andis]["down"] = (int)$list[$num]["down"];
+                    $result[$list_andis]["usage"] = (int)$list[$num]["up"] + (int)$list[$num]["down"];
                     $result[$list_andis]["total"] = (int)$list[$num]["total"];
                     $result[$list_andis]["remark"] = $list[$num]["remark"];
                     $result[$list_andis]["enable"] = (bool)$list[$num]["enable"];
                     $result[$list_andis]["expiryTime"] = (int)$list[$num]["expiryTime"];
+                    $result[$list_andis]["expiryDate"] = date("Y-m-d",$list[$num]["expiryTime"]);
                     $result[$list_andis]["listen"] = $list[$num]["listen"];
                     $result[$list_andis]["port"] = (int)$list[$num]["port"];
                     $result[$list_andis]["protocol"] = $list[$num]["protocol"];
@@ -266,38 +268,43 @@ class xui_api
 
     public function update(array $changes) : bool
     {
-        $user = $this->list(["port" => $changes["port"]]);
-        $id = $user["id"];
-
-        if(!empty($changes["enable"]))
-            $user["enable"] = $changes["enable"];
-
-        if(!empty($changes["reset"]))
-        {
-            $user["up"] = 0;
-            $user["down"] = 0;
-        }
-
-        if(!empty($changes["remark"]))
-            $user["remark"] = $changes["remark"];
-
-        if(!empty($changes["expiryTime"]))
-            $user["expiryTime"] = $changes["expiryTime"];
-
         if(!empty($changes["port"]))
-            if($this->list(["port" => $changes["port"]]) == [])
-                $user["port"] = $changes["port"];
-
-        if(!empty($changes["protocol"]))
         {
-            $user["protocol"] = $changes["protocol"];
+            $user = $this->list(["port" => $changes["port"]]);
+            $id = $user["id"];
+
+            if(!empty($changes["enable"]))
+                $user["enable"] = $changes["enable"];
+
+            if(!empty($changes["reset"]))
+            {
+                $user["up"] = 0;
+                $user["down"] = 0;
+            }
+
+            if(!empty($changes["remark"]))
+                $user["remark"] = $changes["remark"];
+
+            if(!empty($changes["expiryTime"]))
+                $user["expiryTime"] = $changes["expiryTime"];
+
+            if(!empty($changes["newPort"]))
+                if($this->list(["port" => $changes["newPort"]]) == [])
+                    $user["port"] = $changes["newPort"];
+
+            if(!empty($changes["protocol"]))
+            {
+                $user["protocol"] = $changes["protocol"];
+            }
+
+            $user["settings"] = json_encode($user["settings"]);
+            $user["streamSettings"] = json_encode($user["streamSettings"]);
+            $user["sniffing"] = json_encode($user["sniffing"]);
+
+            return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
         }
 
-        $user["settings"] = json_encode($user["settings"]);
-        $user["streamSettings"] = json_encode($user["streamSettings"]);
-        $user["sniffing"] = json_encode($user["sniffing"]);
-
-        return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
+       return false;
     }
 
     public function del(int $id) : bool
