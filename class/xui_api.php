@@ -273,7 +273,10 @@ class xui_api
             $user = $this->list(["port" => $changes["port"]]);
             $id = $user["id"];
 
-            if(!empty($changes["enable"]))
+            if($changes["enable"])
+                $user["enable"] = $changes["enable"];
+
+            if(!$changes["enable"])
                 $user["enable"] = $changes["enable"];
 
             if(!empty($changes["reset"]))
@@ -304,7 +307,7 @@ class xui_api
             return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
         }
 
-       return false;
+        return false;
     }
 
     public function del(int $id) : bool
