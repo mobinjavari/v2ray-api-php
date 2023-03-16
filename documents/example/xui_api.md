@@ -16,6 +16,10 @@
         <p><sub>The fifth parameter receives the value of the port as a number (if the port is 0, it will automatically create a port)</sub></p>
         <p><sub>The sixth parameter takes the value of the expiration date in unix format</sub></p>
         <pre><code>$example->add("vmess",10,"ws","example",0,0); # Add custom user </code></pre><br><br>
+        <li>Use the following code sample to update the user (<small>Port value is required</small>)</li><br>
+        <pre><code>$example->update(["port" => 3443]); # Update user</code></pre>
+        <p><sub>Supported values: enable, reset, remark, expirationTime, protocol, newPort</sub></p>
+        <pre><code>$example->update(["port" => 3443,"enable" => false,"reset" => true,"remark" => "Update","protocol" => "vless"]); # New Data</code></pre><br><br>
         <li>User deletion code example</li><br>
         <pre><code>$example->del(1); # Delete user</code></pre>
         <p><sub>It takes the value of the user ID and deletes it</sub></p><br><br>
