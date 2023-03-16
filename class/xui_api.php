@@ -20,12 +20,15 @@ class xui_api
 
     private string $cookie_txt_path;
 
+    public mixed $empty_object;
+
     public function __construct(string $address, string $port, string $username, string $password)
     {
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->empty_object = new stdClass();
         $this->cookies_directory = "./.cookies/";
         $this->cookie_txt_path = "$this->cookies_directory$this->address.$this->port.txt";
 
@@ -122,6 +125,7 @@ class xui_api
                     $result[$list_andis]["protocol"] = $list[$num]["protocol"];
                     $result[$list_andis]["settings"] = json_decode($list[$num]["settings"],true);
                     $result[$list_andis]["streamSettings"] = json_decode($list[$num]["streamSettings"],true);
+                    $result[$list_andis]["streamSettings"]["wsSettings"]["headers"] = $this->empty_object;
                     $result[$list_andis]["tag"] = $list[$num]["tag"];
                     $result[$list_andis]["sniffing"] = json_decode($list[$num]["sniffing"],true);
                     $result[$list_andis]["url"] =
@@ -206,7 +210,6 @@ class xui_api
         $remark = empty($remark) ? "Created by API" : $remark;
         $total = $total * 1024 * 1024 * 1024;
         $port = $port == 0 ? rand(11111,65335) : $port;
-        $empty_object = new stdClass();
         $settings = match ($protocol) {
             "vmess" => json_encode([
                 "clients" => [
@@ -218,7 +221,7 @@ class xui_api
                 "clients" => [
                     ["id" => "$guidv4","flow" => "xtls-rprx-direct"]
                 ],
-                "decryption" => "none","fallbacks" => $empty_object
+                "decryption" => "none","fallbacks" => []
             ])
         };
         $stream_settings = match ($network) {
@@ -236,7 +239,7 @@ class xui_api
                 "security" => "none",
                 "wsSettings" => [
                     "path" => "/",
-                    "headers" => $empty_object
+                    "headers" => $this->empty_object
                 ]
             ])
         };
@@ -259,6 +262,42 @@ class xui_api
         ];
 
         return (bool)$this->request("xui/inbound/add",$post)["success"];
+    }
+
+    public function update(array $changes) : bool
+    {
+        $user = $this->list(["port" => $changes["port"]]);
+        $id = $user["id"];
+
+        if(!empty($changes["enable"]))
+            $user["enable"] = $changes["enable"];
+
+        if(!empty($changes["reset"]))
+        {
+            $user["up"] = 0;
+            $user["down"] = 0;
+        }
+
+        if(!empty($changes["remark"]))
+            $user["remark"] = $changes["remark"];
+
+        if(!empty($changes["expiryTime"]))
+            $user["expiryTime"] = $changes["expiryTime"];
+
+        if(!empty($changes["port"]))
+            if($this->list(["port" => $changes["port"]]) == [])
+                $user["port"] = $changes["port"];
+
+        if(!empty($changes["protocol"]))
+        {
+            $user["protocol"] = $changes["protocol"];
+        }
+
+        $user["settings"] = json_encode($user["settings"]);
+        $user["streamSettings"] = json_encode($user["streamSettings"]);
+        $user["sniffing"] = json_encode($user["sniffing"]);
+
+        return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
     }
 
     public function del(int $id) : bool
