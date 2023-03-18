@@ -121,15 +121,20 @@ class xui_api
                     $result[$list_andis]["remark"] = $list[$num]["remark"];
                     $result[$list_andis]["enable"] = (bool)$list[$num]["enable"];
                     $result[$list_andis]["expiryTime"] = (int)$list[$num]["expiryTime"];
-                    $result[$list_andis]["expiryDate"] = date("Y-m-d",$list[$num]["expiryTime"]);
+                    $result[$list_andis]["expiryDate"] =
+                        $list[$num]["expiryTime"] == 0 ? 0 :
+                            date("Y-m-d",$list[$num]["expiryTime"]);
                     $result[$list_andis]["listen"] = $list[$num]["listen"];
                     $result[$list_andis]["port"] = (int)$list[$num]["port"];
                     $result[$list_andis]["protocol"] = $list[$num]["protocol"];
-                    $result[$list_andis]["settings"] = json_decode($list[$num]["settings"],true);
-                    $result[$list_andis]["streamSettings"] = json_decode($list[$num]["streamSettings"],true);
+                    $result[$list_andis]["settings"] =
+                        json_decode($list[$num]["settings"],true);
+                    $result[$list_andis]["streamSettings"] =
+                        json_decode($list[$num]["streamSettings"],true);
                     $result[$list_andis]["streamSettings"]["wsSettings"]["headers"] = $this->empty_object;
                     $result[$list_andis]["tag"] = $list[$num]["tag"];
-                    $result[$list_andis]["sniffing"] = json_decode($list[$num]["sniffing"],true);
+                    $result[$list_andis]["sniffing"] =
+                        json_decode($list[$num]["sniffing"],true);
                     $result[$list_andis]["url"] =
                         $this->url(
                             $result[$list_andis]["protocol"],
@@ -213,21 +218,21 @@ class xui_api
         $total = $total * 1024 * 1024 * 1024;
         $port = $port == 0 ? rand(11111,65335) : $port;
         $settings = match ($protocol) {
-            "vmess" => json_encode([
+            "vmess" => [
                 "clients" => [
                     ["id" => "$guidv4","alterId" => 0]
                 ],
                 "disableInsecureEncryption" => false
-            ]),
-            "vless" => json_encode([
+            ],
+            "vless" => [
                 "clients" => [
                     ["id" => "$guidv4","flow" => "xtls-rprx-direct"]
                 ],
                 "decryption" => "none","fallbacks" => []
-            ])
+            ]
         };
         $stream_settings = match ($network) {
-            "tcp" => json_encode([
+            "tcp" => [
                 "network" => "tcp",
                 "security" => "none",
                 "tcpSettings" => [
@@ -235,15 +240,15 @@ class xui_api
                         "type" => "none"
                     ]
                 ]
-            ]),
-            "ws" => json_encode([
+            ],
+            "ws" => [
                 "network" => "ws",
                 "security" => "none",
                 "wsSettings" => [
                     "path" => "/",
                     "headers" => $this->empty_object
                 ]
-            ])
+            ]
         };
         $post = [
             "up" => 0,
@@ -255,8 +260,8 @@ class xui_api
             "listen" => "",
             "port" => $port,
             "protocol" => $protocol,
-            "settings" => $settings,
-            "streamSettings" => $stream_settings,
+            "settings" => json_encode($settings),
+            "streamSettings" => json_encode($stream_settings),
             "sniffing" => json_encode([
                 "enabled" => true,
                 "destOverride" => ["http","tls"]
@@ -268,40 +273,78 @@ class xui_api
 
     public function update(array $changes) : bool
     {
-        if(!empty($changes["port"]))
+        if(isset($changes["port"]))
         {
             $user = $this->list(["port" => $changes["port"]]);
             $id = $user["id"];
 
-            if($changes["enable"])
-                $user["enable"] = $changes["enable"];
-
-            if(!$changes["enable"])
-                $user["enable"] = $changes["enable"];
-
-            if(!empty($changes["reset"]))
+            if(isset($changes["reset"]))
             {
                 $user["up"] = 0;
                 $user["down"] = 0;
             }
 
-            if(!empty($changes["remark"]))
+            if(isset($changes["total"]))
+                $user["total"] = ((int)$changes["total"] * 1024 * 1024 * 1024);
+
+            if(isset($changes["enable"]))
+                $user["enable"] = $changes["enable"];
+
+            if(isset($changes["remark"]))
                 $user["remark"] = $changes["remark"];
 
-            if(!empty($changes["expiryTime"]))
+            if(isset($changes["expiryTime"]))
                 $user["expiryTime"] = $changes["expiryTime"];
 
-            if(!empty($changes["newPort"]))
+            if(isset($changes["newPort"]))
                 if($this->list(["port" => $changes["newPort"]]) == [])
                     $user["port"] = $changes["newPort"];
 
-            if(!empty($changes["protocol"]))
-            {
+            if(isset($changes["protocol"])) {
                 $user["protocol"] = $changes["protocol"];
+                $settings = match ($user["protocol"]) {
+                    "vmess" => [
+                        "clients" => [
+                            ["id" => $this->guidv4(),"alterId" => 0]
+                        ],
+                        "disableInsecureEncryption" => false
+                    ],
+                    "vless" => [
+                        "clients" => [
+                            ["id" => $this->guidv4(),"flow" => "xtls-rprx-direct"]
+                        ],
+                        "decryption" => "none","fallbacks" => []
+                    ]
+                };
+                $user["settings"] = json_encode($settings);
+            } else {
+                $user["settings"] = json_encode($user["settings"]);
             }
 
-            $user["settings"] = json_encode($user["settings"]);
-            $user["streamSettings"] = json_encode($user["streamSettings"]);
+            if(isset($changes["network"])) {
+                $stream_settings = match ($changes["network"]) {
+                    "tcp" => [
+                        "network" => "tcp",
+                        "security" => "none",
+                        "tcpSettings" => [
+                            "header" => [
+                                "type" => "none"
+                            ]
+                        ]
+                    ],
+                    "ws" => [
+                        "network" => "ws",
+                        "security" => "none",
+                        "wsSettings" => [
+                            "path" => "/",
+                            "headers" => $this->empty_object
+                        ]
+                    ]
+                };
+                $user["streamSettings"] = json_encode($stream_settings);
+            } else {
+                $user["streamSettings"] = json_encode($user["streamSettings"]);
+            }
             $user["sniffing"] = json_encode($user["sniffing"]);
 
             return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
