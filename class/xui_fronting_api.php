@@ -6,7 +6,7 @@
  * | - License : github.com/mobinjavari/v2ray-api-php/LICENSE.md
 \*/
 
-class xui_fronting_tls_api
+class xui_fronting_api
 {
     private string $address;
 
