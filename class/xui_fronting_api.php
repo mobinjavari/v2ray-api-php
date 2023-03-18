@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection ALL */
 
 /*\
  * | - Author : github.com/mobinjavari
@@ -16,14 +16,45 @@ class xui_fronting_api
 
     private string $password;
 
+    private string $cookies_directory;
+
+    private string $cookie_txt_path;
+
+    public mixed $empty_object;
+
     public function __construct(string $address, int $port, string $username, string $password)
     {
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->empty_object = new stdClass();
+        $this->cookies_directory = "./.cookies/";
+        $this->cookie_txt_path = "$this->cookies_directory$this->address.$this->port.txt";
 
-        if(!file_exists('./.cookie.txt')) $this->login();
+        if(!is_dir($this->cookies_directory)) mkdir($this->cookies_directory);
+
+        if(!file_exists($this->cookie_txt_path))
+        {
+            $login = $this->login();
+
+            if(!$login["success"])
+            {
+                unlink($this->cookie_txt_path);
+                exit($login["msg"]);
+            }
+        }
+
+        if(count($this->list()) < 5)
+        {
+            $create = 5 - count($this->list());
+
+            while ($create)
+            {
+                $this->add();
+                $create--;
+            }
+        }
     }
 
     public function request(string $method, array | string $param = "") : array
@@ -34,8 +65,8 @@ class xui_fronting_api
             CURLOPT_URL => $URL,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
-            CURLOPT_COOKIEFILE => "./.cookie.txt",
-            CURLOPT_COOKIEJAR => "./.cookie.txt",
+            CURLOPT_COOKIEFILE => $this->cookie_txt_path,
+            CURLOPT_COOKIEJAR => $this->cookie_txt_path,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_FOLLOWLOCATION => true,
@@ -50,6 +81,7 @@ class xui_fronting_api
         curl_setopt_array($ch, $options);
         $response = curl_exec($ch);
         $http_code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
         return match ($http_code) {
             200 => json_decode($response,true),
@@ -57,9 +89,9 @@ class xui_fronting_api
         };
     }
 
-    public function login() : bool
+    public function login() : array
     {
-        return (bool)$this->request("login",[
+        return $this->request("login",[
             "username" => $this->username,
             "password" => $this->password
         ]);
@@ -173,7 +205,7 @@ class xui_fronting_api
             case "vless":
                 $vless_url = "vless://$guid";
                 $vless_url .= "@$this->address:$port";
-                $vless_url .= "?type=$network&security=tls&path=$path&fp=$fp&encryption=none&host=$this->address&sni=$this->address";
+                $vless_url .= "?type=$network&security=tls&path=$path&fp=$fp&encryption=none";
                 $vless_url .= "#$remark";
                 return $vless_url;
 
@@ -192,7 +224,7 @@ class xui_fronting_api
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    function update(int $andis, int $client_andis, array $changes)
+    function update(int $andis, int $client_andis, array $changes) : bool
     {
         if(!empty($changes))
         {
@@ -240,10 +272,123 @@ class xui_fronting_api
         return true;
     }
 
+    public function new(string $email, int $total, int $ex) : bool
+    {
+        $total = $total * 1024 * 1024 * 1024;
+
+        for ($andis = 0; $andis < 5; $andis++)
+        {
+            $json_settings = json_decode($this->list()[$andis]["settings"],true);
+            $count_settings = count($json_settings["clients"]);
+
+            if($count_settings <= 20) {
+                return $this->update($andis,$count_settings,[
+                    "settings" => [
+                        "clients" => [
+                            "email" => $email,
+                            "limitIp" => 0,
+                            "totalGB" => $total,
+                            "expiryTime" => $ex
+                        ]
+                    ]
+                ],true);
+            }
+        }
+
+        return false;
+    }
+
+    public function add(
+        string $remark = "",
+        string $protocol = "vless",
+        int $port = 0,
+        int $expire_time = 0
+    ) : bool
+    {
+        $ports = [2053,2083,2087,2096,8443];
+        $inbound_count = count($this->list());
+        $port = $port == 0 ? $ports[$inbound_count] : $port;
+        $remark = empty($remark) ? "$port" : $remark;
+        $settings = [
+            "clients" => [
+                [
+                    "id" => $this->guidv4(),
+                    "flow" => "",
+                    "email" => "Ping-Test-".rand(1111,9999),
+                    "limitIp" => 0,
+                    "totalGB" => 0,
+                    "fingerprint" => "chrome",
+                    "expiryTime" => ""
+                ]
+            ],
+            "decryption" => "none",
+            "fallbacks" => []
+        ];
+        $stream_settings = [
+            "network" => "ws",
+            "security" => "tls",
+            "tlsSettings" => [
+                "serverName" => "",
+                "minVersion" => "1.2",
+                "maxVersion" => "1.3",
+                "cipherSuites" => "",
+                "certificates" => [
+                    [
+                        "certificateFile" => "/root/cert.crt",
+                        "keyFile" => "/root/private.key"
+                    ]
+                ],
+                "alpn" => ["h2", "http/1.1"],
+            ],
+            "wsSettings" => [
+                "acceptProxyProtocol" => false,
+                "path" => "/",
+                "headers" => $this->empty_object
+            ]
+        ];
+        $sniffing = [
+            "enabled" => true,
+            "destOverride" => ["http","tls"]
+        ];
+        $add = [
+            "up" => 0,
+            "down" => 0,
+            "total" => 0,
+            "remark" => "$remark",
+            "enable" => true,
+            "expireTime" => $expire_time,
+            "clientStats" => null,
+            "listen" => "",
+            "port" => $port,
+            "protocol" => $protocol,
+            "settings" => json_encode($settings),
+            "streamSettings" => json_encode($stream_settings),
+            "sniffing" => json_encode($sniffing)
+        ];
+
+        return (bool)$this->request(
+            "xui/inbound/add",$add
+        )["success"];
+    }
+
+    public function reset($client) : bool
+    {
+        return (bool)$this->request(
+            "xui/inbound/resetClientTraffic/$client"
+        )["success"];
+    }
+
     public function del($id) : bool
     {
         return (bool)$this->request(
             "xui/inbound/del/$id"
         )["success"];
+    }
+
+    public function status() : array
+    {
+        return $this->request(
+            "server/status"
+        )["obj"];
     }
 }
