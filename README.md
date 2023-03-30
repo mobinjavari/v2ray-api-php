@@ -11,7 +11,7 @@
     <li>Get the information of all users or a specific user</li>
     <li>It supports vmess/vless protocols and tcp/ws networks</li>
     <li>Ability to filter received values (example: port)</li>
-    <li>...</li>
+    <li>... (All the facilities that are in the x-ui panel)</li>
   </ol>
 </div><br><br>
 
