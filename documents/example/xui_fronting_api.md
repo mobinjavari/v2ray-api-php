@@ -12,7 +12,7 @@
         <p><sub>The first parameter receives the value of the client's email</sub></p>
         <p><sub>The second parameter receives the volume value in gigabytes (0 = unlimited)</sub></p>
         <p><sub>The third parameter takes the value of the expiration date in Unix format</sub></p>
-        <pre><code>$example->add("mobinjavari",10,0); # Add custom client </code></pre><br><br>
+        <pre><code>$example->new("mobinjavari",10,0); # Add custom client </code></pre><br><br>
         <li>Use the following code sample to update the user (<small>Andis value and andis client are required</small>)</li>
         <p>You can get the value of andis and andis client from list method</p><br>
         <pre><code>$example->update(0,1,$changes); # Update user</code></pre>
