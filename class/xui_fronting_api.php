@@ -16,18 +16,33 @@ class xui_fronting_api
 
     private string $password;
 
+    private string $default_protocol;
+
+    private string $default_transmission;
+
     private string $cookies_directory;
 
     private string $cookie_txt_path;
 
     public mixed $empty_object;
 
-    public function __construct(string $address, int $port, string $username, string $password)
+    public function __construct(
+        string $address,
+        int $port,
+        string $username,
+        string $password,
+        string $default_protocol = "",
+        string $default_transmission = ""
+    )
     {
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->default_protocol =
+            empty($default_protocol) ? "vless" : $default_protocol;
+        $this->default_transmission =
+            empty($default_transmission) ? "ws" : $default_transmission;
         $this->empty_object = new stdClass();
         $this->cookies_directory = "./.cookies/";
         $this->cookie_txt_path = "$this->cookies_directory$this->address.$this->port.txt";
@@ -107,19 +122,15 @@ class xui_fronting_api
         {
             $result = [];
 
-            for ($list_andis = 0 ,$num = 0, $lim = 0; $num < count($list); $num++)
+            for ($list_andis = 0, $num = 0; $num < count($list); $num++)
             {
-                $id = empty($filter["id"]) ? "" : $filter["id"];
                 $email = empty($filter["email"]) ? "" : $filter["email"];
-                $client_stats = $list[$lim]["clientStats"];
-                $settings = json_decode($list[$lim]["settings"],true);
-                $remark = $list[$lim]["remark"];
-                $port = (int)$list[$lim]["port"];
-                $protocol = $list[$lim]["protocol"];
-                $stream_settings = json_decode($list[$lim]["streamSettings"],true);
-
-                if(!empty($id)) return $list[$id-1];
-                if($lim >= count($settings["clients"])) $lim++;
+                $client_stats = $list[$num]["clientStats"];
+                $settings = json_decode($list[$num]["settings"],true);
+                $remark = $list[$num]["remark"];
+                $port = (int)$list[$num]["port"];
+                $protocol = $list[$num]["protocol"];
+                $stream_settings = json_decode($list[$num]["streamSettings"],true);
 
                 if(!empty($email))
                 {
@@ -127,7 +138,9 @@ class xui_fronting_api
                     {
                         if($settings["clients"][$num_2]["email"] == $filter["email"])
                         {
-                            $result[$list_andis]["guid"] = $settings["clients"][$num_2]["id"];
+                            $result[$list_andis]["protocol"] = $protocol;
+                            $result[$list_andis]["network"] = $stream_settings["network"];
+                            $result[$list_andis]["uid"] = $settings["clients"][$num_2]["id"];
                             $result[$list_andis]["flow"] = $settings["clients"][$num_2]["flow"];
                             $result[$list_andis]["email"] = $settings["clients"][$num_2]["email"];
                             $result[$list_andis]["limitIp"] = (int)$settings["clients"][$num_2]["limitIp"];
@@ -135,30 +148,35 @@ class xui_fronting_api
                             $result[$list_andis]["fingerprint"] = $settings["clients"][$num_2]["fingerprint"];
                             $result[$list_andis]["expiryTime"] = (int)$settings["clients"][$num_2]["expiryTime"];
                             $result[$list_andis]["clientAndis"] = $num_2;
+                            break;
                         }
                     }
-                    for ($num_2 = 0; $num_2 < count($client_stats); $num_2++)
+                    if(!empty($result))
                     {
-                        if($client_stats[$num_2]["email"] == $filter["email"])
+                        for ($num_2 = 0; $num_2 < count($client_stats); $num_2++)
                         {
-                            $result[$list_andis]["id"] = (int)$client_stats[$num_2]["id"];
-                            $result[$list_andis]["inboundId"] = (int)$client_stats[$num_2]["inboundId"];
-                            $result[$list_andis]["enable"] = (int)$client_stats[$num_2]["enable"];
-                            $result[$list_andis]["up"] = (int)$client_stats[$num_2]["up"];
-                            $result[$list_andis]["down"] = (int)$client_stats[$num_2]["down"];
-                            $result[$list_andis]["expiryTime"] = (int)$client_stats[$num_2]["expiryTime"];
-                            $result[$list_andis]["total"] = (int)$client_stats[$num_2]["total"];
-                            $result[$list_andis]["statsAndis"] = $num_2;
-                            $result[$list_andis]["url"] = $this->url(
-                                $protocol,
-                                $result[$list_andis]["guid"],
-                                "$remark-$email",
-                                $stream_settings["network"],
-                                $port,
-                                $result[$list_andis]["fingerprint"],
-                                $stream_settings["wsSettings"]["path"]
-                            );
-                            $list_andis++;
+                            if($client_stats[$num_2]["email"] == $filter["email"])
+                            {
+                                $result[$list_andis]["id"] = (int)$client_stats[$num_2]["id"];
+                                $result[$list_andis]["inboundId"] = (int)$client_stats[$num_2]["inboundId"];
+                                $result[$list_andis]["enable"] = (int)$client_stats[$num_2]["enable"];
+                                $result[$list_andis]["up"] = (int)$client_stats[$num_2]["up"];
+                                $result[$list_andis]["down"] = (int)$client_stats[$num_2]["down"];
+                                $result[$list_andis]["expiryTime"] = (int)$client_stats[$num_2]["expiryTime"];
+                                $result[$list_andis]["total"] = (int)$client_stats[$num_2]["total"];
+                                $result[$list_andis]["statsAndis"] = $num_2;
+                                $result[$list_andis]["url"] = $this->url(
+                                    $protocol,
+                                    $result[$list_andis]["uid"],
+                                    "$remark-$email",
+                                    $stream_settings["network"],
+                                    $port,
+                                    $result[$list_andis]["fingerprint"],
+                                    $stream_settings["wsSettings"]["path"]
+                                );
+                                $list_andis++;
+                                break;
+                            }
                         }
                     }
                 }
@@ -174,9 +192,9 @@ class xui_fronting_api
 
     public function url(
         string $porotocol,
-        string $guid,
+        string $uid,
         string $remark,
-        string $network,
+        string $transmission,
         int $port,
         string $fp,
         string $path
@@ -186,15 +204,15 @@ class xui_fronting_api
         {
             case "vmess":
                 $vmess_url = "vmess://";
-                $path = $network == "ws" ? "/" : "";
+                $path = $transmission == "ws" ? "/" : "";
                 $vmess_settings = [
                     "v" => "2",
                     "ps" => $remark,
                     "add" => $this->address,
                     "port" => $port,
-                    "id" => $guid,
+                    "id" => $uid,
                     "aid" => 0,
-                    "net" => $network,
+                    "net" => $transmission,
                     "type" => "none",
                     "host" => "",
                     "path" => $path,
@@ -204,9 +222,9 @@ class xui_fronting_api
                 return $vmess_url.$vmess_base;
 
             case "vless":
-                $vless_url = "vless://$guid";
+                $vless_url = "vless://$uid";
                 $vless_url .= "@$this->address:$port";
-                $vless_url .= "?type=$network&security=tls&path=$path&fp=$fp&encryption=none";
+                $vless_url .= "?type=$transmission&security=tls&path=$path&fp=$fp&encryption=none";
                 $vless_url .= "#$remark";
                 return $vless_url;
 
@@ -217,7 +235,8 @@ class xui_fronting_api
     /**
      * @throws Exception
      */
-    private function guidv4() {
+    private function guidv4()
+    {
         $data = random_bytes(16);
         assert(strlen($data) == 16);
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
@@ -231,7 +250,7 @@ class xui_fronting_api
         {
             $list = $this->list();
 
-            if(!empty($changes["settings"]))
+            if(isset($changes["settings"]))
             {
                 $settings = json_decode($list[$andis]["settings"],true);
 
@@ -250,17 +269,17 @@ class xui_fronting_api
                 $settings = json_encode($settings);
             } else $settings = "";
 
-            $result["up"] = empty($changes["up"]) ? $list[$andis]["up"] : $changes["up"];
-            $result["down"] = empty($changes["down"]) ? $list[$andis]["down"] : $changes["down"];
-            $result["total"] = empty($changes["total"]) ? $list[$andis]["total"] : $changes["total"];
-            $result["remark"] = empty($changes["remark"]) ? $list[$andis]["remark"] : $changes["remark"];
-            $result["enable"] = empty($changes["enable"]) ? $list[$andis]["enable"] : $changes["enable"];
-            $result["expiryTime"] = empty($changes["expiryTime"]) ? $list[$andis]["expiryTime"] : $changes["expiryTime"];
+            $result["up"] = isset($changes["up"]) ? $changes["up"] : $list[$andis]["up"];
+            $result["down"] = isset($changes["down"]) ? $changes["down"] : $list[$andis]["down"];
+            $result["total"] = isset($changes["total"]) ? $changes["total"] : $list[$andis]["total"];
+            $result["remark"] = isset($changes["remark"]) ? $changes["remark"] : $list[$andis]["remark"];
+            $result["enable"] = isset($changes["enable"]) ? $changes["enable"] : $list[$andis]["enable"];
+            $result["expiryTime"] = isset($changes["expiryTime"]) ? $changes["expiryTime"] : $list[$andis]["expiryTime"];
             $result["clientStats"] = null;
             $result["listen"] = $list[$andis]["listen"];
             $result["port"] = $list[$andis]["port"];
             $result["protocol"] = $list[$andis]["protocol"];
-            $result["settings"] = empty($settings) ? $list[$andis]["settings"] : addslashes($settings);
+            $result["settings"] = empty($settings) ? $list[$andis]["settings"] : $settings;
             $result["streamSettings"] = $list[$andis]["streamSettings"];
             $result["tag"] = $list[$andis]["tag"];
             $result["sniffing"] = $list[$andis]["sniffing"];
@@ -273,7 +292,7 @@ class xui_fronting_api
         return true;
     }
 
-    public function new(string $email, int $total, int $ex) : bool
+    public function new(string $email, int $total, int $ex)
     {
         $total = $total * 1024 * 1024 * 1024;
 
@@ -283,16 +302,18 @@ class xui_fronting_api
             $count_settings = count($json_settings["clients"]);
 
             if($count_settings <= 20) {
-                return $this->update($andis,$count_settings,[
-                    "settings" => [
-                        "clients" => [
-                            "email" => $email,
-                            "limitIp" => 0,
-                            "totalGB" => $total,
-                            "expiryTime" => $ex
-                        ]
-                    ]
-                ],true);
+                $json_settings["clients"][$count_settings] = [
+                    "id" => $this->guidv4(),
+                    "flow" => "",
+                    "email" => $email,
+                    "limitIp" => 0,
+                    "totalGB" => $total,
+                    "expiryTime" => $ex
+                ];
+                $send["settings"] = json_encode($json_settings);
+                $send["id"] = ++$andis;
+                $result = $this->request("xui/inbound/addClient",$send);
+                return $result["success"];
             }
         }
 
@@ -388,8 +409,71 @@ class xui_fronting_api
 
     public function status() : array
     {
-        return $this->request(
+        $status = $this->request(
             "server/status"
         )["obj"];
+
+        $status["cpu"] = round($status["cpu"]) ."%";
+        $status["mem"]["current"] = $this->formatBytes($status["mem"]["current"]);
+        $status["mem"]["total"] = $this->formatBytes($status["mem"]["total"]);
+        $status["swap"]["current"] = $this->formatBytes($status["swap"]["current"]);
+        $status["swap"]["total"] = $this->formatBytes($status["swap"]["total"]);
+        $status["disk"]["current"] = $this->formatBytes($status["disk"]["current"]);
+        $status["disk"]["total"] = $this->formatBytes($status["disk"]["total"]);
+        $status["netIO"]["up"] = $this->formatBytes($status["netIO"]["up"]);
+        $status["netIO"]["down"] = $this->formatBytes($status["netIO"]["down"]);
+        $status["netTraffic"]["sent"] = $this->formatBytes($status["netTraffic"]["sent"]);
+        $status["netTraffic"]["recv"] = $this->formatBytes($status["netTraffic"]["recv"]);
+        $status["uptime"] = $this->formatTime($status["uptime"]);
+
+        return $status;
+    }
+
+    public function formatBytes(int $size,int $format = 2, int $precision = 2) : string
+    {
+        $base = log($size, 1024);
+
+        if($format == 1) {
+            $suffixes = ['بایت', 'کلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت']; # Persian
+        } elseif ($format == 2) {
+            $suffixes = ["B", "KB", "MB", "GB", "TB"];
+        } else {
+            $suffixes = ['B', 'K', 'M', 'G', 'T'];
+        }
+
+        if($size <= 0) return "0 ".$suffixes[1];
+
+        $result = pow(1024, $base - floor($base));
+        $result = round($result, $precision);
+        $suffixes = $suffixes[floor($base)];
+
+        return $result ." ". $suffixes;
+    }
+
+    public function formatTime(int $time, int $format = 2) : string
+    {
+        if($format == 1) {
+            $lang = ["ثانیه","دقیقه","ساعت","روز","هفته","ماه","سال"]; # Persian
+        } else {
+            $lang = ["Second(s)","Minute(s)","Hour(s)","Day(s)","Week(s)","Month(s)","Year(s)"];
+        }
+
+        if($time >= 1 && $time < 60) {
+            return round($time) . " " . $lang[0];
+        } elseif ($time >= 60 && $time < 3600) {
+            return round($time / 60) . " " . $lang[1];
+        } elseif ($time >= 3600 && $time < 86400) {
+            return round($time / 3600) . " " . $lang[2];
+        } elseif ($time >= 86400 && $time < 604800) {
+            return round($time / 86400) . " " . $lang[3];
+        } elseif ($time >= 604800 && $time < 2600640) {
+            return round($time / 604800) . " " . $lang[4];
+        } elseif ($time >= 2600640 && $time < 31207680) {
+            return round($time / 2600640) . " " . $lang[5];
+        } elseif ($time >= 31207680) {
+            return round($time / 31207680) . " " . $lang[6];
+        } else {
+            return "Not supported";
+        }
     }
 }
