@@ -109,6 +109,7 @@ class xui_fronting_api
 
             for ($list_andis = 0 ,$num = 0, $lim = 0; $num < count($list); $num++)
             {
+                $id = empty($filter["id"]) ? "" : $filter["id"];
                 $email = empty($filter["email"]) ? "" : $filter["email"];
                 $client_stats = $list[$lim]["clientStats"];
                 $settings = json_decode($list[$lim]["settings"],true);
