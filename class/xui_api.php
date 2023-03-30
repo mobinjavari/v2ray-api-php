@@ -16,18 +16,33 @@ class xui_api
 
     private string $password;
 
+    private string $default_protocol;
+
+    private string $default_transmission;
+
     private string $cookies_directory;
 
     private string $cookie_txt_path;
 
     public mixed $empty_object;
 
-    public function __construct(string $address, string $port, string $username, string $password)
+    public function __construct(
+        string $address,
+        string $port,
+        string $username,
+        string $password,
+        string $default_protocol = "",
+        string $default_transmission = ""
+    )
     {
         $this->address = $address;
         $this->port = $port;
         $this->username = $username;
         $this->password = $password;
+        $this->default_protocol =
+            empty($default_protocol) ? "vless" : $default_protocol;
+        $this->default_transmission =
+            empty($default_transmission) ? "ws" : $default_transmission;
         $this->empty_object = new stdClass();
         $this->cookies_directory = "./.cookies/";
         $this->cookie_txt_path = "$this->cookies_directory$this->address.$this->port.txt";
@@ -123,7 +138,10 @@ class xui_api
                     $result[$list_andis]["expiryTime"] = (int)$list[$num]["expiryTime"];
                     $result[$list_andis]["expiryDate"] =
                         $list[$num]["expiryTime"] == 0 ? 0 :
-                            date("Y-m-d",$list[$num]["expiryTime"]);
+                            date("Y-m-d",($list[$num]["expiryTime"] / 1000));
+                    $result[$list_andis]["expiryDays"] =
+                        $list[$num]["expiryTime"] == 0 ? 0 :
+                            round(($list[$num]["expiryTime"] / 1000 - time()) / (60 * 60 * 24));
                     $result[$list_andis]["listen"] = $list[$num]["listen"];
                     $result[$list_andis]["port"] = (int)$list[$num]["port"];
                     $result[$list_andis]["protocol"] = $list[$num]["protocol"];
@@ -155,13 +173,19 @@ class xui_api
         return $list;
     }
 
-    public function url(string $type, string $guid, string $remark, string $network, int $port) : string
+    public function url(
+        string $type,
+        string $guid,
+        string $remark,
+        string $transmission,
+        int $port
+    ) : string
     {
         switch ($type)
         {
             case "vmess":
                 $vmess_url = "vmess://";
-                $path = $network == "ws" ? "/" : "";
+                $path = $transmission == "ws" ? "/" : "";
                 $vmess_settings = [
                     "v" => "2",
                     "ps" => $remark,
@@ -169,7 +193,7 @@ class xui_api
                     "port" => $port,
                     "id" => $guid,
                     "aid" => 0,
-                    "net" => $network,
+                    "net" => $transmission,
                     "type" => "none",
                     "host" => "",
                     "path" => $path,
@@ -181,7 +205,7 @@ class xui_api
             case "vless":
                 $vless_url = "vless://$guid";
                 $vless_url .= "@$this->address:$port";
-                $vless_url .= "?type=$network&security=none&path=/";
+                $vless_url .= "?type=$transmission&security=none&path=/";
                 $vless_url .= "#$remark";
                 return $vless_url;
 
@@ -191,9 +215,9 @@ class xui_api
 
     /**
      * @throws Exception
-     * @noinspection MissingReturnTypeInspection
      */
-    private function guidv4() {
+    private function guidv4() : string
+    {
         $data = random_bytes(16);
         assert(strlen($data) == 16);
         $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
@@ -205,18 +229,20 @@ class xui_api
      * @throws Exception
      */
     public function add(
-        string $protocol = "vmess",
-        int $total = 0,
-        string $network = "ws",
-        string $remark = "",
-        int $port = 0,
-        int $ex_time = 0
+        string $protocol = "", # Amount vmess or vless
+        int $total = 0, # Amount in gigabytes
+        string $transmission = "", # Amount ws or tcp
+        string $remark = "", # Custom
+        int $port = 0, # 1000 to 65330
+        int $ex_time = 0 # Unix Timestamp
     ) : bool
     {
         $guidv4 = $this->guidv4();
+        $protocol = empty($protocol) ? $this->default_protocol : $protocol;
+        $transmission = empty($transmission) ? $this->default_transmission : $transmission;
         $remark = empty($remark) ? "Created by API" : $remark;
         $total = $total * 1024 * 1024 * 1024;
-        $port = $port == 0 ? rand(11111,65335) : $port;
+        $port = empty($port) ? rand(11111,65330) : $port;
         $settings = match ($protocol) {
             "vmess" => [
                 "clients" => [
@@ -231,7 +257,7 @@ class xui_api
                 "decryption" => "none","fallbacks" => []
             ]
         };
-        $stream_settings = match ($network) {
+        $stream_settings = match ($transmission) {
             "tcp" => [
                 "network" => "tcp",
                 "security" => "none",
@@ -271,86 +297,82 @@ class xui_api
         return (bool)$this->request("xui/inbound/add",$post)["success"];
     }
 
-    public function update(array $changes) : bool
+    public function update(int $port, array $changes) : bool
     {
-        if(isset($changes["port"]))
+        $user = $this->list(["port" => $port]);
+        $id = $user["id"];
+
+        if(isset($changes["reset"]))
         {
-            $user = $this->list(["port" => $changes["port"]]);
-            $id = $user["id"];
-
-            if(isset($changes["reset"]))
-            {
-                $user["up"] = 0;
-                $user["down"] = 0;
-            }
-
-            if(isset($changes["total"]))
-                $user["total"] = ((int)$changes["total"] * 1024 * 1024 * 1024);
-
-            if(isset($changes["enable"]))
-                $user["enable"] = $changes["enable"];
-
-            if(isset($changes["remark"]))
-                $user["remark"] = $changes["remark"];
-
-            if(isset($changes["expiryTime"]))
-                $user["expiryTime"] = $changes["expiryTime"];
-
-            if(isset($changes["newPort"]))
-                if($this->list(["port" => $changes["newPort"]]) == [])
-                    $user["port"] = $changes["newPort"];
-
-            if(isset($changes["protocol"])) {
-                $user["protocol"] = $changes["protocol"];
-                $settings = match ($user["protocol"]) {
-                    "vmess" => [
-                        "clients" => [
-                            ["id" => $this->guidv4(),"alterId" => 0]
-                        ],
-                        "disableInsecureEncryption" => false
-                    ],
-                    "vless" => [
-                        "clients" => [
-                            ["id" => $this->guidv4(),"flow" => "xtls-rprx-direct"]
-                        ],
-                        "decryption" => "none","fallbacks" => []
-                    ]
-                };
-                $user["settings"] = json_encode($settings);
-            } else {
-                $user["settings"] = json_encode($user["settings"]);
-            }
-
-            if(isset($changes["network"])) {
-                $stream_settings = match ($changes["network"]) {
-                    "tcp" => [
-                        "network" => "tcp",
-                        "security" => "none",
-                        "tcpSettings" => [
-                            "header" => [
-                                "type" => "none"
-                            ]
-                        ]
-                    ],
-                    "ws" => [
-                        "network" => "ws",
-                        "security" => "none",
-                        "wsSettings" => [
-                            "path" => "/",
-                            "headers" => $this->empty_object
-                        ]
-                    ]
-                };
-                $user["streamSettings"] = json_encode($stream_settings);
-            } else {
-                $user["streamSettings"] = json_encode($user["streamSettings"]);
-            }
-            $user["sniffing"] = json_encode($user["sniffing"]);
-
-            return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
+            $user["up"] = 0;
+            $user["down"] = 0;
         }
 
-        return false;
+        if(isset($changes["total"]))
+            $user["total"] = (int)$changes["total"] * 1024 * 1024 * 1024;
+
+        if(isset($changes["enable"]))
+            $user["enable"] = $changes["enable"];
+
+        if(isset($changes["remark"]))
+            $user["remark"] = $changes["remark"];
+
+        if(isset($changes["expiryTime"]))
+            $user["expiryTime"] = $changes["expiryTime"];
+
+        if(isset($changes["port"]))
+            if($this->list(["port" => $changes["port"]]) == [])
+                $user["port"] = $changes["port"];
+
+        if(isset($changes["protocol"])) {
+            $user["protocol"] = $changes["protocol"];
+            $settings = match ($user["protocol"]) {
+                "vmess" => [
+                    "clients" => [
+                        ["id" => $this->guidv4(),"alterId" => 0]
+                    ],
+                    "disableInsecureEncryption" => false
+                ],
+                "vless" => [
+                    "clients" => [
+                        ["id" => $this->guidv4(),"flow" => "xtls-rprx-direct"]
+                    ],
+                    "decryption" => "none","fallbacks" => []
+                ]
+            };
+            $user["settings"] = json_encode($settings);
+        } else {
+            $user["settings"] = json_encode($user["settings"]);
+        }
+
+        if(isset($changes["transmission"])) {
+            $stream_settings = match ($changes["transmission"]) {
+                "tcp" => [
+                    "network" => "tcp",
+                    "security" => "none",
+                    "tcpSettings" => [
+                        "header" => [
+                            "type" => "none"
+                        ]
+                    ]
+                ],
+                "ws" => [
+                    "network" => "ws",
+                    "security" => "none",
+                    "wsSettings" => [
+                        "path" => "/",
+                        "headers" => $this->empty_object
+                    ]
+                ]
+            };
+            $user["streamSettings"] = json_encode($stream_settings);
+        } else {
+            $user["streamSettings"] = json_encode($user["streamSettings"]);
+        }
+
+        $user["sniffing"] = json_encode($user["sniffing"]);
+
+        return (bool)$this->request("xui/inbound/update/$id",$user)["success"];
     }
 
     public function del(int $id) : bool
@@ -362,8 +384,71 @@ class xui_api
 
     public function status() : array
     {
-        return $this->request(
+        $status = $this->request(
             "server/status"
         )["obj"];
+
+        $status["cpu"] = round($status["cpu"]) ."%";
+        $status["mem"]["current"] = $this->formatBytes($status["mem"]["current"]);
+        $status["mem"]["total"] = $this->formatBytes($status["mem"]["total"]);
+        $status["swap"]["current"] = $this->formatBytes($status["swap"]["current"]);
+        $status["swap"]["total"] = $this->formatBytes($status["swap"]["total"]);
+        $status["disk"]["current"] = $this->formatBytes($status["disk"]["current"]);
+        $status["disk"]["total"] = $this->formatBytes($status["disk"]["total"]);
+        $status["netIO"]["up"] = $this->formatBytes($status["netIO"]["up"]);
+        $status["netIO"]["down"] = $this->formatBytes($status["netIO"]["down"]);
+        $status["netTraffic"]["sent"] = $this->formatBytes($status["netTraffic"]["sent"]);
+        $status["netTraffic"]["recv"] = $this->formatBytes($status["netTraffic"]["recv"]);
+        $status["uptime"] = $this->formatTime($status["uptime"]);
+
+        return $status;
+    }
+
+    public function formatBytes(int $size,int $format = 2, int $precision = 2) : string
+    {
+        $base = log($size, 1024);
+
+        if($format == 1) {
+            $suffixes = ['بایت', 'کلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت']; # Persian
+        } elseif ($format == 2) {
+            $suffixes = ["B", "KB", "MB", "GB", "TB"];
+        } else {
+            $suffixes = ['B', 'K', 'M', 'G', 'T'];
+        }
+
+        if($size <= 0) return "0 ".$suffixes[1];
+
+        $result = pow(1024, $base - floor($base));
+        $result = round($result, $precision);
+        $suffixes = $suffixes[floor($base)];
+
+        return $result ." ". $suffixes;
+    }
+
+    public function formatTime(int $time, int $format = 2) : string
+    {
+        if($format == 1) {
+            $lang = ["ثانیه","دقیقه","ساعت","روز","هفته","ماه","سال"]; # Persian
+        } else {
+            $lang = ["Second(s)","Minute(s)","Hour(s)","Day(s)","Week(s)","Month(s)","Year(s)"];
+        }
+
+        if($time >= 1 && $time < 60) {
+            return round($time) . " " . $lang[0];
+        } elseif ($time >= 60 && $time < 3600) {
+            return round($time / 60) . " " . $lang[1];
+        } elseif ($time >= 3600 && $time < 86400) {
+            return round($time / 3600) . " " . $lang[2];
+        } elseif ($time >= 86400 && $time < 604800) {
+            return round($time / 86400) . " " . $lang[3];
+        } elseif ($time >= 604800 && $time < 2600640) {
+            return round($time / 604800) . " " . $lang[4];
+        } elseif ($time >= 2600640 && $time < 31207680) {
+            return round($time / 2600640) . " " . $lang[5];
+        } elseif ($time >= 31207680) {
+            return round($time / 31207680) . " " . $lang[6];
+        } else {
+            return "Not supported";
+        }
     }
 }
