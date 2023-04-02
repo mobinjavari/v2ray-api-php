@@ -6,7 +6,7 @@
     <ul>
         <li>In the first step, download the project file and open it with your desired editor</li><br>
         <li>Use the following code sample to connect to the server</li><br>
-        <pre><code>$example = new xui_api("IP","Port","Username","Password"); # Login</code></pre><br><br>
+        <pre><code>$example = new xui_fronting_api("IP","Port","Username","Password"); # Login</code></pre><br><br>
         <li>Use the following code sample to create a user</li><br>
         <pre><code>$example->new("Email"); # Add client </code></pre>
         <p><sub>The first parameter receives the value of the client's email</sub></p>
