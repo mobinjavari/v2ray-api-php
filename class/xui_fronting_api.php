@@ -145,7 +145,6 @@ class xui_fronting_api
                             $result[$list_andis]["email"] = $settings["clients"][$num_2]["email"];
                             $result[$list_andis]["limitIp"] = (int)$settings["clients"][$num_2]["limitIp"];
                             $result[$list_andis]["totalGB"] = (int)$settings["clients"][$num_2]["totalGB"];
-                            $result[$list_andis]["fingerprint"] = $settings["clients"][$num_2]["fingerprint"];
                             $result[$list_andis]["expiryTime"] = (int)$settings["clients"][$num_2]["expiryTime"];
                             $result[$list_andis]["clientAndis"] = $num_2;
                             break;
@@ -171,7 +170,6 @@ class xui_fronting_api
                                     "$remark-$email",
                                     $stream_settings["network"],
                                     $port,
-                                    $result[$list_andis]["fingerprint"],
                                     $stream_settings["wsSettings"]["path"]
                                 );
                                 $list_andis++;
@@ -196,7 +194,6 @@ class xui_fronting_api
         string $remark,
         string $transmission,
         int $port,
-        string $fp,
         string $path
     ) : string
     {
@@ -224,7 +221,7 @@ class xui_fronting_api
             case "vless":
                 $vless_url = "vless://$uid";
                 $vless_url .= "@$this->address:$port";
-                $vless_url .= "?type=$transmission&security=tls&path=$path&fp=$fp&encryption=none";
+                $vless_url .= "?type=$transmission&security=tls&path=$path&fp=&encryption=none";
                 $vless_url .= "#$remark";
                 return $vless_url;
 
@@ -244,8 +241,12 @@ class xui_fronting_api
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    function update(int $andis, int $client_andis, array $changes) : bool
+    function update(string $email, array $changes) : bool
     {
+        $client = $this->list(["email" => $email]);
+        $andis = --$client["inboundId"];
+        $client_andis = $client["clientAndis"];
+
         if(!empty($changes))
         {
             $list = $this->list();
