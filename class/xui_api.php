@@ -245,6 +245,7 @@ class xui_api
         $transmission = empty($transmission) ? $this->default_transmission : $transmission;
         $remark = empty($remark) ? "Created by API" : $remark;
         $total = $total * 1024 * 1024 * 1024;
+        $ex_time *= 1000;
         $port = empty($port) ? rand(11111,65330) : $port;
         $settings = match ($protocol) {
             "vmess" => [
@@ -324,7 +325,7 @@ class xui_api
             $user["remark"] = $changes["remark"];
 
         if(isset($changes["expiryTime"]))
-            $user["expiryTime"] = $changes["expiryTime"];
+            $user["expiryTime"] = $changes["expiryTime"] * 1000;
 
         if(isset($changes["port"]))
             if($this->list(["port" => $changes["port"]]) == [])
