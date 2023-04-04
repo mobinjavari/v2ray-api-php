@@ -1,6 +1,8 @@
 <?php /** @noinspection MethodShouldBeFinalInspection */
 
 /*\
+ * | - Version : xui_api v2.3
+ * |
  * | - Author : github.com/mobinjavari
  * | - Source : github.com/mobinjavari/v2ray-api-php
  * | - License : github.com/mobinjavari/v2ray-api-php/LICENSE.md
@@ -89,6 +91,10 @@ class xui_api
 
         return match ($http_code) {
             200 => json_decode($response,true),
+            0 => [
+                "msg" => "The Client cannot connect to the server",
+                "success" => false
+            ],
             default => [
                 "msg" => "Status Code : $http_code",
                 "success" => false
@@ -117,14 +123,11 @@ class xui_api
             for ($list_andis = 0, $num = 0; $num < count($list); $num++)
             {
                 $filter_status = 1;
-                $port = empty($filter["port"]) ? "" : (int)$filter["port"];
-                $uuid = empty($filter["uuid"]) ? "" : $filter["uuid"];
-                $protocol = empty($filter["protocol"]) ? "" : $filter["protocol"];
                 $list_settings = json_decode($list[$num]["settings"],true);
 
-                if(!empty($port) && $port !== (int)$list[$num]["port"]) $filter_status = 0;
-                if(!empty($uuid) && $uuid !== $list_settings["clients"][0]["id"]) $filter_status = 0;
-                if(!empty($protocol) && $protocol !== $list[$num]["protocol"]) $filter_status = 0;
+                if(!empty($filter["port"]) && $filter["port"] !== (int)$list[$num]["port"]) $filter_status = 0;
+                if(!empty($filter["uid"]) && $filter["uid"] !== $list_settings["clients"][0]["id"]) $filter_status = 0;
+                if(!empty($filter["protocol"]) && $filter["protocol"] !== $list[$num]["protocol"]) $filter_status = 0;
 
                 if($filter_status)
                 {
@@ -175,7 +178,7 @@ class xui_api
 
     public function url(
         string $type,
-        string $guid,
+        string $uid,
         string $remark,
         string $transmission,
         int $port
@@ -191,7 +194,7 @@ class xui_api
                     "ps" => $remark,
                     "add" => $this->address,
                     "port" => $port,
-                    "id" => $guid,
+                    "id" => $uid,
                     "aid" => 0,
                     "net" => $transmission,
                     "type" => "none",
@@ -203,7 +206,7 @@ class xui_api
                 return $vmess_url.$vmess_base;
 
             case "vless":
-                $vless_url = "vless://$guid";
+                $vless_url = "vless://$uid";
                 $vless_url .= "@$this->address:$port";
                 $vless_url .= "?type=$transmission&security=none&path=/";
                 $vless_url .= "#$remark";
@@ -216,7 +219,7 @@ class xui_api
     /**
      * @throws Exception
      */
-    private function guidv4() : string
+    private function genUserId() : string
     {
         $data = random_bytes(16);
         assert(strlen($data) == 16);
@@ -229,15 +232,15 @@ class xui_api
      * @throws Exception
      */
     public function add(
-        string $protocol = "", # Amount vmess or vless
-        int $total = 0, # Amount in gigabytes
-        string $transmission = "", # Amount ws or tcp
-        string $remark = "", # Custom
-        int $port = 0, # 1000 to 65330
-        int $ex_time = 0 # Unix Timestamp
+        string $protocol = "",
+        int $total = 0,
+        string $transmission = "",
+        string $remark = "",
+        int $port = 0,
+        int $ex_time = 0
     ) : bool
     {
-        $guidv4 = $this->guidv4();
+        $uid = $this->genUserId();
         $protocol = empty($protocol) ? $this->default_protocol : $protocol;
         $transmission = empty($transmission) ? $this->default_transmission : $transmission;
         $remark = empty($remark) ? "Created by API" : $remark;
@@ -246,13 +249,13 @@ class xui_api
         $settings = match ($protocol) {
             "vmess" => [
                 "clients" => [
-                    ["id" => "$guidv4","alterId" => 0]
+                    ["id" => "$uid","alterId" => 0]
                 ],
                 "disableInsecureEncryption" => false
             ],
             "vless" => [
                 "clients" => [
-                    ["id" => "$guidv4","flow" => "xtls-rprx-direct"]
+                    ["id" => "$uid","flow" => "xtls-rprx-direct"]
                 ],
                 "decryption" => "none","fallbacks" => []
             ]
@@ -297,6 +300,9 @@ class xui_api
         return (bool)$this->request("xui/inbound/add",$post)["success"];
     }
 
+    /**
+     * @throws Exception
+     */
     public function update(int $port, array $changes) : bool
     {
         $user = $this->list(["port" => $port]);
@@ -329,13 +335,13 @@ class xui_api
             $settings = match ($user["protocol"]) {
                 "vmess" => [
                     "clients" => [
-                        ["id" => $this->guidv4(),"alterId" => 0]
+                        ["id" => $this->genUserId(),"alterId" => 0]
                     ],
                     "disableInsecureEncryption" => false
                 ],
                 "vless" => [
                     "clients" => [
-                        ["id" => $this->guidv4(),"flow" => "xtls-rprx-direct"]
+                        ["id" => $this->genUserId(),"flow" => "xtls-rprx-direct"]
                     ],
                     "decryption" => "none","fallbacks" => []
                 ]
