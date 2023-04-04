@@ -158,11 +158,11 @@ class xui_api
                         json_decode($list[$num]["sniffing"],true);
                     $result[$list_andis]["url"] =
                         $this->url(
+                            $result[$list_andis]["port"],
                             $result[$list_andis]["protocol"],
                             $result[$list_andis]["settings"]["clients"][0]["id"],
                             $result[$list_andis]["remark"],
                             $result[$list_andis]["streamSettings"]["network"],
-                            $result[$list_andis]["port"]
                         );
                     $list_andis++;
                 }
@@ -177,18 +177,24 @@ class xui_api
     }
 
     public function url(
-        string $type,
-        string $uid,
-        string $remark,
-        string $transmission,
-        int $port
+        int $port,
+        string $protocol = "",
+        string $uid = "",
+        string $remark = "",
+        string $transmission = "",
     ) : string
     {
-        switch ($type)
+        $protocol = empty($protocol) ? $this->list(["port" => $port])["protocol"] : $protocol;
+        $uid = empty($uid) ? $this->list(["port" => $port])["settings"]["clients"][0]["id"] : $uid;
+        $remark = empty($remark) ? $this->list(["port" => $port])["remark"] : $remark;
+        $transmission = empty($transmission) ?
+            $this->list(["port" => $port])["streamSettings"]["network"] : $transmission;
+        $path = $transmission == "ws" ? "/" : "";
+
+        switch ($protocol)
         {
             case "vmess":
                 $vmess_url = "vmess://";
-                $path = $transmission == "ws" ? "/" : "";
                 $vmess_settings = [
                     "v" => "2",
                     "ps" => $remark,
@@ -208,7 +214,7 @@ class xui_api
             case "vless":
                 $vless_url = "vless://$uid";
                 $vless_url .= "@$this->address:$port";
-                $vless_url .= "?type=$transmission&security=none&path=/";
+                $vless_url .= "?type=$transmission&security=none&path=$path";
                 $vless_url .= "#$remark";
                 return $vless_url;
 
