@@ -1,7 +1,7 @@
 <div align="center">
   <h1>V2Ray API with PHP</h1>
   <p>A complete class to connect to the x-ui panel</p>
-  <p><a href="documents/install">how to install x-ui panel</a><br><br>
+  <p><a href="docs/install">how to install x-ui panel</a><br><br>
 </div>
 
 <div align="left">
@@ -25,12 +25,12 @@
         </tr>
         <tr>
             <td><a href="class/xui_api.php">Main API</a></td>
-            <td>For main x-ui panel <sup><a href="documents/example/xui_api.md">doc...</a></sup></td>
+            <td>For main x-ui panel <sup><a href="docs/example/xui_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
         <tr>
             <td><a href="class/xui_fronting_api.php">Fronting API</a></td>
-            <td>For fronting panel <sup><a href="documents/example/xui_fronting_api.md">doc...</a></sup></td>
+            <td>For fronting panel <sup><a href="docs/example/xui_fronting_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
     </table>
