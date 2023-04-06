@@ -6,7 +6,7 @@
     <ul>
         <li>In the first step, download the project file and open it with your desired editor</li><br>
         <li>Use the following code sample to connect to the server</li><br>
-        <pre><code>$address = "example.com"; # Domain or Port
+        <pre><code>$address = "example.com"; # Domain or IP
 $port = 34029; # Panel port
 $username = "mobinjavari"; # Username
 $password = "Jip98@SDjs8"; # Password
@@ -58,7 +58,7 @@ print_r($filtered_user_data); # Display the output value (array)</code></pre>
         <p><sub>The values that the filter supports port / protocol / uid</sub></p><br><br>
         <li>Creating a url for the user</li><br>      
         <pre><code>$create_url = (string)$example->url(#port); # A specific user
-echo($create_url); # Display the output value (string)</code></pre>
+echo($create_url); # Display the output value (string)</code></pre><br>
         <li>Get server status and specifications</li><br>
         <pre><code>$server_status = $example->status(); # Get server status
 print_r($server_status); # Display the output value (array)</code></pre>
