@@ -25,12 +25,12 @@
         </tr>
         <tr>
             <td><a href="class/xui_api.php">Main API</a></td>
-            <td>For main x-ui panel <sup><a href="docs/example/xui_api.md">doc...</a></sup></td>
+            <td>For main x-ui panel <sup><a href="docs/xui_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
         <tr>
             <td><a href="class/xui_fronting_api.php">Fronting API</a></td>
-            <td>For fronting panel <sup><a href="docs/example/xui_fronting_api.md">doc...</a></sup></td>
+            <td>For fronting panel <sup><a href="docs/xui_fronting_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
     </table>
