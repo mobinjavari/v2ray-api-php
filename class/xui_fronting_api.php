@@ -278,24 +278,10 @@ class xui_fronting_api
                 if(isset($changes["expiryTime"]))
                     $settings["clients"][$client_andis]["expiryTime"] = $changes["expiryTime"] * 1000;
 
-                $settings = json_encode($settings);
+                $result["id"] = ++$andis;
+                $result["settings"] = json_encode($settings);
 
-                $result["up"] = $list[$andis]["up"];
-                $result["down"] = $list[$andis]["down"];
-                $result["total"] = $list[$andis]["total"];
-                $result["remark"] = $list[$andis]["remark"];
-                $result["enable"] = $list[$andis]["enable"];
-                $result["expiryTime"] = $list[$andis]["expiryTime"];
-                $result["clientStats"] = null;
-                $result["listen"] = $list[$andis]["listen"];
-                $result["port"] = $list[$andis]["port"];
-                $result["protocol"] = $list[$andis]["protocol"];
-                $result["settings"] = $settings;
-                $result["streamSettings"] = $list[$andis]["streamSettings"];
-                $result["tag"] = $list[$andis]["tag"];
-                $result["sniffing"] = $list[$andis]["sniffing"];
-
-                $send = $this->request("xui/inbound/update/".++$andis,$result);
+                $send = $this->request("xui/inbound/updateClient/$client_andis",$result);
 
                 return (bool)$send["success"];
             }
