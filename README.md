@@ -1,6 +1,7 @@
 <div align="center">
   <h1>V2Ray API with PHP</h1>
   <p>A complete class to connect to the x-ui panel</p>
+  <p><sup>This api is designed for programmers, if you don't know php, don't use it</sup></p>
   <p><a href="docs/install">how to install x-ui panel</a><br><br>
 </div>
 
