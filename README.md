@@ -1,6 +1,6 @@
 <div align="center">
   <h1>V2Ray API with PHP</h1>
-  <p>A complete class to connect to the x-ui panel</p>
+  <p>A complete class to connect to the x-ui & 3x-ui panel</p>
   <p><sup>This api is designed for programmers, if you don't know php, don't use it</sup></p>
   <p><a href="docs/install">how to install x-ui panel</a><br><br>
 </div>
@@ -8,11 +8,15 @@
 <div align="left">
   <h4>The options that this class provides you :</h4>
   <ol>
-    <li>Add / Remove user</li>
+    <li>Support x-ui and 3-xui panel</li>
+    <li>Get server status</li>
+    <li>Creation and storage of cookies to optimize the speed of sending and receiving information</li>
     <li>Get the information of all users or a specific user</li>
-    <li>It supports vmess/vless protocols and tcp/ws networks</li>
-    <li>Ability to filter received values (example: port)</li>
-    <li>... (All the facilities that are in the x-ui panel)</li>
+    <li>Build config link & qrcode</li>
+    <li>Support for unix-based and volume time formats</li>
+    <li>Add & Update & Remove User</li>
+    <li>It supports vmess/vless/trojan protocols and tcp/ws networks</li>
+    <li>... (All the facilities that are in the x-ui & 3x-ui panel)</li>
   </ol>
 </div><br><br>
 
@@ -25,13 +29,13 @@
             <th>Owner</th>
         </tr>
         <tr>
-            <td><a href="class/xui_api.php">Main API</a></td>
-            <td>For main x-ui panel <sup><a href="docs/xui_api.md">doc...</a></sup></td>
+            <td><a href="class/xui_api.php">x-ui API</a></td>
+            <td>Multi API (x-ui + 3x-ui) <sup><a href="docs/xui_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
         <tr>
-            <td><a href="class/xui_fronting_api.php">Fronting API</a></td>
-            <td>For fronting panel <sup><a href="docs/xui_fronting_api.md">doc...</a></sup></td>
+            <td><a href="class/xui_fronting_api.php">3x-ui API</a></td>
+            <td>3x-ui API <sup><a href="docs/xui_fronting_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
     </table>
