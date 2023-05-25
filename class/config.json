@@ -1,0 +1,279 @@
+{
+  "xui": {
+    "vmess": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%GUID%",
+            "alterId": 0
+          }
+        ],
+        "disableInsecureEncryption": false
+      },
+      "tcp": {
+        "network": "tcp",
+        "security": "none",
+        "tcpSettings": {
+          "header": {
+            "type": "http",
+            "request": {
+              "method": "GET",
+              "path": [
+                "\/"
+              ],
+              "headers": {
+                "Host": [
+                  "telewebion.com"
+                ]
+              }
+            },
+            "response": {
+              "version": "1.1",
+              "status": "200",
+              "reason": "OK",
+              "headers": {}
+            }
+          }
+        }
+      },
+      "ws": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": {
+          "path": "/",
+          "headers": {}
+        }
+      },
+      "url": {
+        "scheme": "vmess",
+        "host": {
+          "v": 2,
+          "ps": "%REMARK%",
+          "add": "%ADDRESS%",
+          "port": "%PORT%",
+          "id": "%USER%",
+          "aid": 0,
+          "net": "%TRANSMISSION%",
+          "type": "none",
+          "host": "",
+          "path": "/",
+          "tls": "none"
+        }
+      }
+    },
+    "vless": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%GUID%",
+            "flow": "xtls-rprx-direct"
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "tcp": {
+        "network": "tcp",
+        "security": "none",
+        "tcpSettings": {
+          "header": {
+            "type": "none"
+          }
+        }
+      },
+      "ws": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": {
+          "path": "/",
+          "headers": {}
+        }
+      },
+      "url": {
+        "scheme": "vless",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%USER%",
+        "query": "type=%TRANSMISSION%&security=none&path=/",
+        "fragment": "%REMARK%"
+      }
+    },
+    "trojan": {
+      "settings": {
+        "clients": [
+          {
+            "password": "%PASSWORD%",
+            "flow": "xtls-rprx-direct"
+          }
+        ],
+        "fallbacks": []
+      },
+      "tcp": {},
+      "ws": {},
+      "url": {
+        "scheme": "trojan",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%PASS%",
+        "query": "type=%TRANSMISSION%&security=tls",
+        "fragment": "%REMARK%"
+      }
+    },
+    "sniffing": {
+      "enabled": true,
+      "destOverride": [
+        "http",
+        "tls"
+      ]
+    }
+  },
+  "p3xui": {
+    "vmess": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%GUID%",
+            "alterId": 0,
+            "email": "%EMAIL%",
+            "limitIp": "%LIMIT_IP%",
+            "totalGB": "%TOTAL%",
+            "expiryTime": "%EXPIRY_TIME%",
+            "enable": true,
+            "tgId": "",
+            "subId": ""
+          }
+        ],
+        "disableInsecureEncryption": false
+      },
+      "tcp": {
+        "network": "tcp",
+        "security": "none",
+        "tcpSettings": {
+          "acceptProxyProtocol": false,
+          "header": {
+            "type": "http",
+            "request": {
+              "method": "GET",
+              "path": [
+                "/"
+              ],
+              "headers": {
+                "Host": [
+                  "telewebion.com"
+                ]
+              }
+            },
+            "response": {
+              "version": "1.1",
+              "status": "200",
+              "reason": "OK",
+              "headers": {}
+            }
+          }
+        }
+      },
+      "ws": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": {
+          "acceptProxyProtocol": false,
+          "path": "/",
+          "headers": {}
+        }
+      },
+      "url": {
+        "scheme": "vmess",
+        "host": {
+          "v": 2,
+          "ps": "%EMAIL%",
+          "add": "%ADDRESS%",
+          "port": "%PORT%",
+          "id": "%USER%",
+          "aid": 0,
+          "net": "%TRANSMISSION%",
+          "type": "http",
+          "host": "telewebion.com",
+          "path": "/",
+          "tls": "none"
+        }
+      }
+    },
+    "vless": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%GUID%",
+            "flow": "",
+            "email": "%EMAIL%",
+            "limitIp": "%LIMIT_IP%",
+            "totalGB": "%TOTAL%",
+            "expiryTime": "%EXPIRY_TIME%",
+            "enable": true,
+            "tgId": "",
+            "subId": ""
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "tcp": {
+        "network": "tcp",
+        "security": "none",
+        "tcpSettings": {
+          "acceptProxyProtocol": false,
+          "header": {
+            "type": "http",
+            "request": {
+              "method": "GET",
+              "path": [
+                "/"
+              ],
+              "headers": {
+                "Host": [
+                  "telewebion.com"
+                ]
+              }
+            },
+            "response": {
+              "version": "1.1",
+              "status": "200",
+              "reason": "OK",
+              "headers": {}
+            }
+          }
+        }
+      },
+      "ws": {
+        "network": "ws",
+        "security": "none",
+        "wsSettings": {
+          "acceptProxyProtocol": false,
+          "path": "/",
+          "headers": {}
+        }
+      },
+      "url": {
+        "scheme": "vless",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%USER%",
+        "query": "type=%TRANSMISSION%&host=telewebion.com&security=none&headerType=http&path=/",
+        "fragment": "%EMAIL%"
+      }
+    },
+    "trojan": {
+      "settings": {},
+      "tcp": {},
+      "ws": {},
+      "url": {}
+    },
+    "sniffing": {
+      "enabled": true,
+      "destOverride": [
+        "http",
+        "tls",
+        "quic"
+      ]
+    }
+  }
+}

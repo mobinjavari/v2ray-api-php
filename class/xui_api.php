@@ -72,6 +72,7 @@ class xui_api
         # Settings
         $this->settings = new stdClass();
         $this->settings->is_3xui = $is_3xui;
+        $this->settings->path = $is_3xui ? 'panel' : 'xui';
         $this->settings->protocol = $default_protocol;
         $this->settings->transmission = $default_transmission;
 
@@ -104,13 +105,12 @@ class xui_api
                     foreach ($replaces as $replace) {
                         $key = $replace['key'] ?? false;
                         $value = $replace['value'] ?? false;
-
-                        if ($key && $value) $json = str_replace($key, $value, $json);
+                        $json = str_replace($key, $value, $json);
                     }
                 }
 
                 $contents = json_decode($json);
-                $contents = $this->settings->is_3xui ? $contents->xxxui : $contents->xui;
+                $contents = $this->settings->is_3xui ? $contents->p3xui : $contents->xui;
 
                 return [
                     'success' => true,
@@ -232,46 +232,98 @@ class xui_api
      */
     public function list(array $filters = []): array
     {
-        $list = $this->request('xui/inbound/list');
+        $list = $this->request("{$this->settings->path}/inbound/list");
 
         if ($list['success']) {
             $result = [];
             $list_andis = 0;
             $users = $list['obj'];
 
-            foreach ($users as $user) {
-                $filter_status = 1;
-                $guid = json_decode($user['settings'], true)['clients'][0]['id'] ?? '';
+            if ($this->settings->is_3xui) {
+                $inbounds = $users;
 
-                if (isset($filters['port']) && (int)$filters['port'] != $user['port']) $filter_status = 0;
-                if (isset($filters['guid']) && $filters['guid'] != $guid) $filter_status = 0;
-                if (isset($filters['protocol']) && $filters['protocol'] != $user['protocol']) $filter_status = 0;
+                foreach ($inbounds as $users) {
+                    $filter_status = 1;
+                    $clients = json_decode($users['settings'], true)['clients'];
+                    $stream_settings = json_decode($users['streamSettings'], true);
+                    $client_stats = $users['clientStats'];
 
-                if ($filter_status) {
-                    $usage = $user['up'] + $user['down'];
-                    $expiry_time = $user['expiryTime'] ? intval($user['expiryTime'] / 1000) : 0;
-                    $expiry_date = $expiry_time ? date('Y-m-d', $expiry_time) : 0;
-                    $expiry_days = $expiry_time ? round(($expiry_time - time()) / (60 * 60 * 24)) : 0;
-                    $result[$list_andis] = [
-                        'id' => $user['id'],
-                        'up' => $user['up'],
-                        'down' => $user['down'],
-                        'usage' => $usage,
-                        'total' => $user['total'],
-                        'remark' => $user['remark'],
-                        'enable' => (bool)$user['enable'],
-                        'expiryTime' => $expiry_time,
-                        'expiryDate' => $expiry_date,
-                        'expiryDays' => $expiry_days,
-                        'listen' => $user['listen'],
-                        'port' => $user['port'],
-                        'protocol' => $user['protocol'],
-                        'settings' => json_decode($user['settings']),
-                        'streamSettings' => json_decode($user['streamSettings']),
-                        'tag' => $user['tag'],
-                        'sniffing' => json_decode($user['sniffing'])
-                    ];
-                    ++$list_andis;
+                    foreach ($clients as $user) {
+                        if (isset($filters['port']) && $filters['port'] != $users['port']) $filter_status = 0;
+                        if (isset($filters['protocol']) && $filters['protocol'] != $users['protocol']) $filter_status = 0;
+                        if (isset($filters['guid']) && $filters['guid'] != $user['id']) $filter_status = 0;
+                        if (isset($filters['email']) && $filters['email'] != $user['email']) $filter_status = 0;
+                        if (isset($filters['transmission']) && $filters['transmission'] != $stream_settings['network']) $filter_status = 0;
+
+                        if ($filter_status) {
+                            $result[$list_andis]['settings'] = $user;
+                        }
+
+                        if (isset($result[$list_andis])) {
+                            foreach ($client_stats as $state) {
+                                if ($state['email'] == $result[$list_andis]['settings']['email']) {
+                                    $usage = $state['up'] + $state['down'];
+                                    $expiry_time = $state['expiryTime'] ? intval($state['expiryTime'] / 1000) : 0;
+                                    $expiry_date = $expiry_time ? date('Y-m-d', $expiry_time) : 0;
+                                    $expiry_days = $expiry_time ? round(($expiry_time - time()) / (60 * 60 * 24)) : 0;
+
+                                    $result[$list_andis]['id'] = $state['id'];
+                                    $result[$list_andis]['inboundId'] = $state['inboundId'];
+                                    $result[$list_andis]['enable'] = $state['enable'];
+                                    $result[$list_andis]['email'] = $state['email'];
+                                    $result[$list_andis]['up'] = $state['up'];
+                                    $result[$list_andis]['down'] = $state['down'];
+                                    $result[$list_andis]['usage'] = $usage;
+                                    $result[$list_andis]['expiryTime'] = $expiry_time;
+                                    $result[$list_andis]['expiryDate'] = $expiry_date;
+                                    $result[$list_andis]['expiryDays'] = $expiry_days;
+                                    $result[$list_andis]['total'] = $state['total'];
+                                    $result[$list_andis]['remark'] = $users['remark'];
+                                    $result[$list_andis]['protocol'] = $users['protocol'];
+                                    $result[$list_andis]['transmission'] = $stream_settings['network'];
+                                }
+                            }
+
+                            if (isset($result[$list_andis]['id'])) ++$list_andis;
+                            else unset($result[$list_andis]);
+                        }
+                    }
+                }
+            } else {
+                foreach ($users as $user) {
+                    $filter_status = 1;
+                    $guid = json_decode($user['settings'], true)['clients'][0]['id'] ?? '';
+
+                    if (isset($filters['port']) && (int)$filters['port'] != $user['port']) $filter_status = 0;
+                    if (isset($filters['guid']) && $filters['guid'] != $guid) $filter_status = 0;
+                    if (isset($filters['protocol']) && $filters['protocol'] != $user['protocol']) $filter_status = 0;
+
+                    if ($filter_status) {
+                        $usage = $user['up'] + $user['down'];
+                        $expiry_time = $user['expiryTime'] ? intval($user['expiryTime'] / 1000) : 0;
+                        $expiry_date = $expiry_time ? date('Y-m-d', $expiry_time) : 0;
+                        $expiry_days = $expiry_time ? round(($expiry_time - time()) / (60 * 60 * 24)) : 0;
+                        $result[$list_andis] = [
+                            'id' => $user['id'],
+                            'up' => $user['up'],
+                            'down' => $user['down'],
+                            'usage' => $usage,
+                            'total' => $user['total'],
+                            'remark' => $user['remark'],
+                            'enable' => (bool)$user['enable'],
+                            'expiryTime' => $expiry_time,
+                            'expiryDate' => $expiry_date,
+                            'expiryDays' => $expiry_days,
+                            'listen' => $user['listen'],
+                            'port' => $user['port'],
+                            'protocol' => $user['protocol'],
+                            'settings' => json_decode($user['settings']),
+                            'streamSettings' => json_decode($user['streamSettings']),
+                            'tag' => $user['tag'],
+                            'sniffing' => json_decode($user['sniffing'])
+                        ];
+                        ++$list_andis;
+                    }
                 }
             }
 
@@ -296,6 +348,94 @@ class xui_api
     }
 
     /**
+     * @info for 3x-ui panel
+     * @param string $protocol
+     * @param string $transmission
+     * @return array
+     */
+    private function get_inbound(string $protocol, string $transmission): array
+    {
+        $inbound = $this->list(['protocol' => $protocol, 'transmission' => $transmission]);
+
+        if ($inbound['success']) {
+            $data = $inbound['obj'][0] ?? $inbound['obj'];
+
+            return [
+                'success' => true,
+                'msg' => '',
+                'obj' => [
+                    'inbound' => $data['inboundId']
+                ]
+            ];
+        }
+
+        $guid = $this->random_guid();
+
+        if ($guid['success']) {
+            $guid = $guid['obj']['guid'];
+            $port = $this->random_port();
+            $replaces = [
+                ['key' => '%GUID%', 'value' => $guid],
+                ['key' => '%EMAIL%', 'value' => "API-TEST-$port"],
+                ['key' => '%LIMIT_IP%', 'value' => 0],
+                ['key' => '%TOTAL%', 'value' => 0],
+                ['key' => '%EXPIRY_TIME%', 'value' => 0],
+            ];
+            $config = $this->config($replaces);
+
+            if ($config['success']) {
+                $config = $config['obj'];
+                $new = [
+                    'up' => 0,
+                    'down' => 0,
+                    'total' => 0,
+                    'remark' => "$protocol-$transmission",
+                    'enable' => true,
+                    'expiryTime' => 0,
+                    'listen' => "",
+                    'port' => $port,
+                    'protocol' => $protocol,
+                    'settings' => json_encode(match ($protocol) {
+                        'vmess' => $config->vmess->settings,
+                        'trojan' => $config->trojan->settings,
+                        default /* vless */ => $config->vless->settings
+                    }),
+                    'streamSettings' => json_encode(match ($transmission) {
+                        'ws' => match ($protocol) {
+                            'vmess' => $config->vmess->ws,
+                            default /* vless */ => $config->vless->ws,
+                        },
+                        default /* tcp */ => match ($protocol) {
+                            'vmess' => $config->vmess->tcp,
+                            default /* vless */ => $config->vless->tcp,
+                        }
+                    }),
+                    'sniffing' => json_encode($config->sniffing)
+                ];
+                $result = $this->request("panel/inbound/add", $new);
+
+                if ($result['success']) {
+                    $result = $result['obj'];
+                    $result = [
+                        'success' => true,
+                        'msg' => '',
+                        'obj' => [
+                            'inbound' => $result['id'],
+                            'port' => $result['port']
+                        ]
+                    ];
+                }
+
+                return $result;
+            }
+
+            return $config;
+        }
+
+        return $guid;
+    }
+
+    /**
      * @param string|null $protocol
      * @param int $total
      * @param string|null $transmission
@@ -317,57 +457,87 @@ class xui_api
 
         if ($guid['success']) {
             $guid = $guid['obj']['guid'];
+            $total *= (1024 * 1024 * 1024);
+            $expiry_time = $expiry_time ? $expiry_time * 1000 : 0;
+            $email = $this->random_string();
             $replaces = [
                 ['key' => '%GUID%', 'value' => $guid],
                 ['key' => '%PASSWORD%', 'value' => $this->random_string()],
+                ['key' => '%EMAIL%', 'value' => $email],
+                ['key' => '%LIMIT_IP%', 'value' => 0],
+                ['key' => '%TOTAL%', 'value' => $total],
+                ['key' => '%EXPIRY_TIME%', 'value' => $expiry_time],
             ];
             $config = $this->config($replaces);
 
             if ($config['success']) {
                 $config = $config['obj'];
-                $protocol = $protocol ?? $this->settings->protocol;
-                $port = $port ?: $this->random_port();
-                $expiry_time = $expiry_time ? $expiry_time * 1000 : 0;
-                $total *= (1024 * 1024 * 1024);
-                $settings = match ($protocol) {
-                    'vless' => $config->vless->settings,
-                    'trojan' => $config->trojan->settings,
-                    default /* vmess */ => $config->vmess->settings
-                };
 
-                if ($protocol == 'trojan') $transmission = 'tcp';
-                else $transmission = $transmission ?? $this->settings->transmission;
+                if ($this->settings->is_3xui) {
+                    $inbound = $this->get_inbound($protocol, $transmission);
 
-                $stream_settings = match ($transmission) {
-                    'ws' => match ($protocol) {
-                        'vless' => $config->vless->ws,
-                        'vmess' => $config->vmess->ws,
-                    },
-                    default /* tcp */ => match ($protocol) {
-                        'vless' => $config->vless->tcp,
-                        'vmess' => $config->vmess->tcp,
+                    if ($inbound['success']) {
+                        $inbound = $inbound['obj'];
+                        $new = [
+                            'id' => $inbound['inbound'],
+                            'settings' => json_encode(match ($protocol) {
+                                'vmess' => $config->vmess->settings,
+                                'trojan' => $config->trojan->settings,
+                                default /* vless */ => $config->vless->settings,
+                            })
+                        ];
+                        $result = $this->request("panel/inbound/addClient", $new);
+                        $result['obj'] = [
+                            'email' => $email,
+                        ];
+
+                        return $result;
                     }
-                };
-                $sniffing = $config->sniffing;
 
-                $new = [
-                    'up' => 0,
-                    'down' => 0,
-                    'total' => $total,
-                    'remark' => $remark,
-                    'enable' => true,
-                    'expiryTime' => $expiry_time,
-                    'listen' => "",
-                    'port' => $port,
-                    'protocol' => $protocol,
-                    'settings' => json_encode($settings),
-                    'streamSettings' => json_encode($stream_settings),
-                    'sniffing' => json_encode($sniffing)
-                ];
-                $result = $this->request("xui/inbound/add", $new);
-                $result['obj'] = [
-                    'port' => $port,
-                ];
+                    return $inbound;
+                } else {
+                    $protocol = $protocol ?? $this->settings->protocol;
+                    $port = $port ?: $this->random_port();
+                    $settings = match ($protocol) {
+                        'vless' => $config->vless->settings,
+                        'trojan' => $config->trojan->settings,
+                        default /* vmess */ => $config->vmess->settings
+                    };
+
+                    if ($protocol == 'trojan') $transmission = 'tcp';
+                    else $transmission = $transmission ?? $this->settings->transmission;
+
+                    $stream_settings = match ($transmission) {
+                        'ws' => match ($protocol) {
+                            'vless' => $config->vless->ws,
+                            'vmess' => $config->vmess->ws,
+                        },
+                        default /* tcp */ => match ($protocol) {
+                            'vless' => $config->vless->tcp,
+                            'vmess' => $config->vmess->tcp,
+                        }
+                    };
+                    $sniffing = $config->sniffing;
+
+                    $new = [
+                        'up' => 0,
+                        'down' => 0,
+                        'total' => $total,
+                        'remark' => $remark,
+                        'enable' => true,
+                        'expiryTime' => $expiry_time,
+                        'listen' => "",
+                        'port' => $port,
+                        'protocol' => $protocol,
+                        'settings' => json_encode($settings),
+                        'streamSettings' => json_encode($stream_settings),
+                        'sniffing' => json_encode($sniffing)
+                    ];
+                    $result = $this->request("xui/inbound/add", $new);
+                    $result['obj'] = [
+                        'port' => $port,
+                    ];
+                }
 
                 return $result;
             }
