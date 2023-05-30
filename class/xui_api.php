@@ -384,10 +384,11 @@ class xui_api
                 $port = $this->random_port();
                 $replaces = [
                     ['key' => '%GUID%', 'value' => $guid],
-                    ['key' => '%EMAIL%', 'value' => "API-TEST-$port"],
+                    ['key' => '%EMAIL%', 'value' => "API-DEFAULT-$port"],
                     ['key' => '%LIMIT_IP%', 'value' => 0],
                     ['key' => '%TOTAL%', 'value' => 0],
                     ['key' => '%EXPIRY_TIME%', 'value' => 0],
+                    ['key' => '%PASSWORD%', 'value' => $this->random_string()],
                     ['key' => '%ENABLE%', 'value' => true],
                 ];
                 $config = $this->config($replaces);
@@ -489,6 +490,7 @@ class xui_api
 
             if ($config['success']) {
                 $config = $config['obj'];
+                $transmission = $protocol == 'trojan' ? 'tcp' : $transmission ?? $this->settings->transmission;
 
                 if ($this->settings->is_3xui) {
                     $inbound = $this->get_inbound($protocol, $transmission);
@@ -520,9 +522,6 @@ class xui_api
                         'trojan' => $config->trojan->settings,
                         default /* vmess */ => $config->vmess->settings
                     };
-
-                    if ($protocol == 'trojan') $transmission = 'tcp';
-                    else $transmission = $transmission ?? $this->settings->transmission;
 
                     $stream_settings = match ($transmission) {
                         'ws' => match ($protocol) {
@@ -587,14 +586,13 @@ class xui_api
                     ['key' => '%LIMIT_IP%', 'value' => $limit_ip],
                     ['key' => '%TOTAL%', 'value' => $total],
                     ['key' => '%EXPIRY_TIME%', 'value' => $expiry_time],
-                    ['key' => '%EXPIRY_TIME%', 'value' => $expiry_time],
                     ['key' => '"%ENABLE%"', 'value' => $enable ? 'true' : 'false'],
                 ];
                 $config = $this->config($replaces);
 
                 if ($config['success']) {
                     $config = $config['obj'];
-                    $update['id'] = 3;
+                    $update['id'] = $user['inboundId'];
                     $update['settings'] = json_encode(match ($user['protocol']) {
                         'vmess' => $config->vmess->settings,
                         default /* vless */ => $config->vless->settings
@@ -704,9 +702,8 @@ class xui_api
 
         if ($user['success']) {
             $user = $user['obj'];
-            $port = $user['port'];
-            $url = $this->create_url($port);
-            $qrcode = $this->create_qrcode($port);
+            $url = $this->create_url($key, $type);
+            $qrcode = $this->create_qrcode($key, $type);
 
             if ($url['success']) {
                 if ($qrcode['success']) {
@@ -762,17 +759,18 @@ class xui_api
     }
 
     /**
-     * @param string $guid
+     * @param string $key
+     * @param string $type
      * @return array
      */
-    public function delete(string $guid): array
+    public function delete(string $key, string $type = 'guid'): array
     {
-        $user = $this->list(['guid' => $guid]);
+        $user = $this->list([$type => $key]);
 
         if ($user['success']) {
             $user = $user['obj'][0] ?? $user['obj'];
             $is_3xui = $this->settings->is_3xui;
-            $delete = $is_3xui ? "panel/inbound/{$user['inboundId']}/delClient/$guid" : "xui/inbound/del/{$user['id']}";
+            $delete = $is_3xui ? "panel/inbound/{$user['inboundId']}/delClient/$key" : "xui/inbound/del/{$user['id']}";
 
             return $this->request($delete);
         }
@@ -802,12 +800,13 @@ class xui_api
     }
 
     /**
-     * @param string $guid
+     * @param string $key
+     * @param string $type
      * @return array
      */
-    public function create_url(string $guid): array
+    public function create_url(string $key, string $type = 'guid'): array
     {
-        $user = $this->list(['guid' => $guid]);
+        $user = $this->list([$type => $key]);
 
         if ($user['success']) {
             $user = $user['obj'][0] ?? $user['obj'];
@@ -817,14 +816,12 @@ class xui_api
                 $email = $user['email'] ?? '';
                 $protocol = $user['protocol'] ?? '';
                 $port = $user['port'] ?? '';
-                $password = $user['password'] ?? '';
                 $remark = '';
                 $transmission = $user['transmission'] ?? '';
             } else {
                 $email = '';
                 $protocol = $user['protocol'] ?? '';
                 $port = $user['port'] ?? '';
-                $password = $user['settings']->clients[0]->password ?? '';
                 $remark = $user['remark'] ?? $this->random_string(4);
                 $transmission = $user['streamSettings']->network;
             }
@@ -834,10 +831,15 @@ class xui_api
                 ['key' => '%EMAIL%', 'value' => $email],
                 ['key' => '%ADDRESS%', 'value' => $address],
                 ['key' => '%PORT%', 'value' => $port],
-                ['key' => '%USER%', 'value' => $guid],
-                ['key' => '%PASS%', 'value' => $password],
                 ['key' => '%TRANSMISSION%', 'value' => $transmission],
             ];
+            $input = match ($type) {
+                'password' => [['key' => '%PASS%', 'value' => $key]],
+                default /* guid */ => [['key' => '%USER%', 'value' => $key]]
+            };
+
+            $replaces = array_merge($replaces, $input);
+
             $config = $this->config($replaces);
 
             if ($config['success']) {
@@ -946,12 +948,13 @@ class xui_api
 
 
     /**
-     * @param string $guid
+     * @param string $key
+     * @param string $type
      * @return array
      */
-    public function create_qrcode(string $guid): array
+    public function create_qrcode(string $key, string $type = 'guid'): array
     {
-        $url = $this->create_url($guid);
+        $url = $this->create_url($key, $type);
 
         if ($url['success']) {
             $text = urlencode($url['obj']['url']);
@@ -966,7 +969,9 @@ class xui_api
             return [
                 'success' => true,
                 'msg' => '',
-                'obj' => $qrcode
+                'obj' => [
+                    'qrcode' => $qrcode
+                ]
             ];
         }
 
