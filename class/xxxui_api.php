@@ -8,7 +8,7 @@
  * | - License : github.com/mobinjavari/v2ray-api-php/LICENSE.md
 \*/
 
-class xui_fronting_api
+class xxxui_api
 {
     private string $address;
 
