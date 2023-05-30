@@ -35,7 +35,7 @@
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
         <tr>
-            <td><a href="class/xui_fronting_api.php">3x-ui API</a></td>
+            <td><a href="class/xxxui_api.php">3x-ui API</a></td>
             <td>3x-ui API <sup><a href="docs/xui_fronting_api.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
