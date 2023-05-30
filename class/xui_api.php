@@ -64,8 +64,8 @@ class xui_api
         # Connect
         $url = parse_url($address);
         $this->connect = new  stdClass();
-        $this->connect->protocol = $url['scheme'];
-        $this->connect->address = $url['host'];
+        $this->connect->protocol = $url['scheme'] ?? 'https';
+        $this->connect->address = $url['host'] ?? $address;
         $this->connect->port = $port;
         $this->connect->username = $username;
         $this->connect->password = $password;
@@ -219,6 +219,11 @@ class xui_api
         ];
     }
 
+    /**
+     * @param string $method
+     * @param array $param
+     * @return array
+     */
     private function request(string $method, array $param = []): array
     {
         if ($this->login['success'])
@@ -464,10 +469,10 @@ class xui_api
     public function add(
         string $protocol = null,
         int    $total = 0,
+        int    $expiry_time = 0,
         string $transmission = null,
         string $remark = 'Created By API',
         int    $port = 0,
-        int    $expiry_time = 0,
     ): array
     {
         $guid = $this->random_guid();
@@ -565,13 +570,14 @@ class xui_api
     }
 
     /**
-     * @param string $guid
+     * @param string $key
+     * @param string $type
      * @param array $changes
      * @return array
      */
-    public function update(string $guid, array $changes): array
+    public function update(string $key, string $type, array $changes): array
     {
-        $user = $this->list(['guid' => $guid]);
+        $user = $this->list([$type => $key]);
 
         if ($user['success']) {
             if ($this->settings->is_3xui) {
