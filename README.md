@@ -9,15 +9,15 @@
 <div align="left">
   <h4>The options that this class provides you :</h4>
   <ol>
-    <li>Support x-ui and 3-xui panel</li>
-    <li>Get server status</li>
-    <li>Creation and storage of cookies to optimize the speed of sending and receiving information</li>
-    <li>Get the information of all users or a specific user</li>
-    <li>Build config link & qrcode</li>
-    <li>Support for unix-based and volume time formats</li>
-    <li>Add & Update & Remove User</li>
-    <li>It supports vmess/vless/trojan protocols and tcp/ws networks</li>
-    <li>... (All the facilities that are in the x-ui & 3x-ui panel)</li>
+    <li>Customization configuration for x-ui and 3x-ui (config.json)</li>
+    <li>Support vmess/vless/trojan protocols and tcp/ws transmissions</li>
+    <li>Receiving user information from the server + the possibility of filtering received information, for example: based on GUID, Port, ... (list)</li>
+    <li>Adding a personalized user (add)</li>
+    <li>Update user information as desired (update)</li>
+    <li>Get user information + QR and link (fetch)</li>
+    <li>Get server status (status)</li>
+    <li>Delete the user from the server (delete)</li>
+    <li>... some useful functions to convert time and volume formats</li>
   </ol>
 </div><br><br>
 
