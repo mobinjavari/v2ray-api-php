@@ -97,11 +97,11 @@ class xui_api
      */
     private function config(array $replaces = []): array
     {
-        if (file_exists('config.json')) {
+        if (file_exists(__DIR__ . '/config.json')) {
             $guid = $this->random_guid();
 
             if ($guid['success']) {
-                $json = file_get_contents('config.json');
+                $json = file_get_contents(__DIR__ . '/config.json');
 
                 if ($replaces) {
                     foreach ($replaces as $replace) {
@@ -157,7 +157,6 @@ class xui_api
         $response = curl_exec($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
-
         if ($http_code !== 200) unlink($this->cookies->file);
 
         return match ($http_code) {
@@ -205,8 +204,8 @@ class xui_api
             $login = $this->curl_custom('login', [
                 'username' => $this->connect->username,
                 'password' => $this->connect->password,
+                'LoginSecret' => '',
             ]);
-
             if (!$login['success']) unlink($this->cookies->file);
 
             return $login;
@@ -468,7 +467,7 @@ class xui_api
      */
     public function add(
         string $protocol = null,
-        int    $total = 0,
+        float  $total = 0,
         int    $expiry_time = 0,
         string $transmission = null,
         string $remark = 'Created By API',
@@ -488,7 +487,7 @@ class xui_api
                 ['key' => '%EMAIL%', 'value' => $email],
                 ['key' => '%LIMIT_IP%', 'value' => 0],
                 ['key' => '%TOTAL%', 'value' => $total],
-                ['key' => '%EXPIRY_TIME%', 'value' => $expiry_time],
+                ['key' => '"%EXPIRY_TIME%"', 'value' => $expiry_time],
                 ['key' => '%ENABLE%', 'value' => true],
             ];
             $config = $this->config($replaces);
@@ -513,6 +512,7 @@ class xui_api
                         $result = $this->request("panel/inbound/addClient", $new);
                         $result['obj'] = [
                             'email' => $email,
+                            'guid' => $guid,
                         ];
 
                         return $result;
@@ -575,15 +575,15 @@ class xui_api
      * @param array $changes
      * @return array
      */
-    public function update(string $key, string $type, array $changes): array
+    public function update(string $type, string $key, array $changes): array
     {
         $user = $this->list([$type => $key]);
 
         if ($user['success']) {
             if ($this->settings->is_3xui) {
                 $user = $user['obj'][0] ?? $user['obj'];
-                $expiry_time = isset($changes['expiryTime']) ? ($changes['expiryTime'] * 1000) : $user['expiryTime'] ?? '';
-                $total = isset($changes['total']) ? ($changes['total'] * (1024 * 1024 * 1024)) : $user['total'] ?? '';
+                $expiry_time = isset($changes['expiryTime']) ? ($changes['expiryTime'] * 1000) : $user['settings']['expiryTime'] ?? '';
+                $total = isset($changes['total']) ? ($changes['total'] * (1024 * 1024 * 1024)) : $user['settings']['totalGB'] ?? '';
                 $limit_ip = $changes['limitIp'] ?? $user['settings']['limitIp'] ?? '';
                 $enable = (isset($changes['enable']) && is_bool($changes['enable'])) ? $changes['enable'] : $user['enable'] ?? '';
                 $replaces = [
@@ -591,7 +591,7 @@ class xui_api
                     ['key' => '%EMAIL%', 'value' => $user['email'] ?? ''],
                     ['key' => '%LIMIT_IP%', 'value' => $limit_ip],
                     ['key' => '%TOTAL%', 'value' => $total],
-                    ['key' => '%EXPIRY_TIME%', 'value' => $expiry_time],
+                    ['key' => '"%EXPIRY_TIME%"', 'value' => $expiry_time],
                     ['key' => '"%ENABLE%"', 'value' => $enable ? 'true' : 'false'],
                 ];
                 $config = $this->config($replaces);
@@ -831,7 +831,6 @@ class xui_api
                 $remark = $user['remark'] ?? $this->random_string(4);
                 $transmission = $user['streamSettings']->network;
             }
-
             $replaces = [
                 ['key' => '%REMARK%', 'value' => $remark],
                 ['key' => '%EMAIL%', 'value' => $email],
@@ -850,7 +849,6 @@ class xui_api
 
             if ($config['success']) {
                 $config = $config['obj'];
-
                 switch ($protocol) {
                     case 'vmess':
                         $vmess = $config->vmess->url;
