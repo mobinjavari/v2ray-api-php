@@ -30,8 +30,8 @@
             <th>Owner</th>
         </tr>
         <tr>
-            <td><a href="class/xui_api.php">x-ui API</a></td>
-            <td>Multi API (x-ui + 3x-ui) <sup><a href="docs/xui_api.md">doc...</a></sup></td>
+            <td><a href="class/xuiConnect.php">x-ui API</a></td>
+            <td>Multi API (x-ui + 3x-ui) <sup><a href="docs/HowToUse.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
     </table>
