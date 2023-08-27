@@ -10,7 +10,7 @@
  * | - License : github.com/mobinjavari/v2ray-api-php/LICENSE.md
 \*/
 
-class xui_api
+class xuiConnect
 {
     /**
      * @var mixed

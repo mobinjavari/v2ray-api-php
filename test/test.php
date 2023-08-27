@@ -1,6 +1,6 @@
 <?php
 
-include '../class/xui_api.php';
+include '../class/xuiConnect.php';
 
 // $connect = new xui_api(
 //     '172.104.128.168',
@@ -11,7 +11,7 @@ include '../class/xui_api.php';
 //     'tcp'
 // );
 
-$connect = new xui_api(
+$connect = new xuiConnect(
     '139.162.185.41',
     23118,
     'admin',
