@@ -1,0 +1,248 @@
+.cover {
+    background: var(--light-grad-pink-blue, radial-gradient(ellipse at 40% 0%, #bf39894b 0, transparent 75%), radial-gradient(ellipse at 60% 0%, #096dde44 0, transparent 75%)) !important;
+}
+
+section.cover {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.content {
+    padding: 60px 0;
+}
+
+.sidebar {
+    padding: 28px 0 0;
+}
+
+.sidebar-toggle {
+    background-color: transparent !important;
+    width: auto !important;
+    margin: 6px;
+}
+
+.sidebar ul li a {
+    font-size: 16px;
+}
+
+.sidebar .sidebar-nav {
+    padding: 30px 0;
+}
+
+.markdown-section pre {
+    border-radius: 10px;
+}
+
+.markdown-section code {
+    border-radius: 5px;
+}
+
+.markdown-section> :not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) code {
+    line-height: 2;
+}
+
+.docsify-copy-code-button {
+    border-radius: 0 10px 0 10px !important;
+}
+
+.gt-container {
+    padding-bottom: 30px;
+}
+
+.gt-container .gt-avatar img {
+    border-radius: 12px;
+}
+
+.gt-container .gt-header-textarea {
+    border-radius: 10px;
+}
+
+.gt-container .gt-popup .gt-action {
+    margin: 12px 0;
+}
+
+.gt-container .gt-popup {
+    top: 38px;
+    padding: 0;
+}
+
+.gt-container .gt-popup .gt-action.is--active:before {
+    top: 8px;
+}
+
+.gt-container .gt-copyright {
+    margin: 0 0.9375em 0.5em;
+    padding: 9px 0 8px 0;
+}
+
+.gt-container .gt-header-textarea:hover,
+.gt-container .gt-header-textarea:focus {
+    border-color: #58a6ff;
+    -webkit-box-shadow: 0 0.625em 3.75em 0 #58a6ff27;
+    box-shadow: 0 0.625em 3.75em 0 #58a6ff27;
+}
+
+.gt-container .gt-popup {
+    border-radius: 10px;
+}
+
+.gt-container .gt-comments-null {
+    margin: 0;
+    padding: 22px 0 !important;
+}
+
+.gt-container .gt-comment-admin .gt-comment-content {
+    border: 1px solid #0000001a;
+    border-radius: 10px;
+}
+
+.gt-container .gt-comment-content {
+    border: 1px solid #0000001a;
+    border-radius: 10px;
+}
+
+.gt-container .gt-comment-content:hover {
+    -webkit-box-shadow: 0 0.625em 3.75em 0 #58a6ff17;
+    box-shadow: 0 0.625em 3.75em 0 #58a6ff17;
+}
+
+.markdown-body blockquote {
+    border-color: #58a6ff;
+    border-radius: 3px;
+}
+
+.gt-container .gt-comment-body {
+    font-size: 14px;
+    margin: 16px 0 0;
+}
+
+.docsify-pagination-container {
+    display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+    }
+
+    body {
+        /* background: var(--light-grad-pink-blue, radial-gradient(ellipse at 40% 0%, #bf398910 0, transparent 75%), radial-gradient(ellipse at 60% 0%, #096bde10 0, transparent 75%)) !important; */
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+
+    .cover {
+            background: var(--light-grad-pink-blue, radial-gradient(ellipse at 40% 0%, #bf398935 0, transparent 75%), radial-gradient(ellipse at 60% 0%, #096dde2e 0, transparent 75%)) !important;
+    }
+
+    section.cover {
+        border-bottom: 1px solid rgb(255 255 255 / 7%);
+        color: #fff;
+    }
+
+    .anchor span {
+        color: #c9d1d9 !important;
+    }
+
+    .sidebar {
+        background-color: #010409;
+        border-color: #ffffff24;
+    }
+
+    .sidebar>h1 {
+        color: #eee !important;
+    }
+
+    .markdown-section code,
+    .markdown-section pre {
+        background-color: #161b22;
+    }
+
+    .markdown-section pre>code {
+        color: #afafaf;
+    }
+
+    .github-corner svg {
+        color: #0d1117;
+    }
+
+    .docsify-pagination-container {
+        border-color: #ffffff24 !important;
+    }
+
+    .gt-container .gt-header-textarea {
+        background-color: #010409;
+        border: 1px solid #30363d;
+    }
+
+    .gt-container .gt-header-preview {
+        border-radius: 10px;
+        background-color: #010409;
+        border: 1px solid #30363d;
+    }
+
+    .gt-container .gt-header-textarea:hover,
+    .gt-container .gt-header-textarea:focus {
+        background-color: #0d1117;
+        -webkit-box-shadow: 0 0.625em 3.75em 0 #58a6ff17;
+        box-shadow: 0 0.625em 3.75em 0 #58a6ff17;
+    }
+
+    .gt-container .gt-meta {
+        border-color: #30363d;
+    }
+
+    .gt-container .gt-svg svg {
+        fill: #6190e8 !important;
+    }
+
+    .gt-container .gt-popup {
+        background-color: #161b22;
+        border: 1px solid #ffffff24;
+    }
+
+    .gt-container a.is--active {
+        color: #c9d1d9;
+    }
+
+    .gt-container .gt-btn-preview:hover {
+        background-color: #2a2f37;
+        border-color: #81a6ed30;
+    }
+
+    .gt-container .gt-btn-preview {
+        background-color: #21262d;
+        border-color: #81a6ed30;
+        color: #cacaca;
+    }
+
+    .markdown-body {
+        color: #c9d1d9;
+    }
+
+    .markdown-section tr:nth-child(2n) {
+        background-color: #161b22;
+    }
+
+    .markdown-section th {
+        border: 1px solid #ffffff24;
+    }
+
+    .markdown-section td {
+        border: 1px solid #ffffff24;
+    }
+
+    .gt-container .gt-comment-admin .gt-comment-content {
+        background-color: #010409;
+        border: 1px solid #ffffff3d;
+    }
+
+    .gt-container .gt-comment-content {
+        background-color: #010409;
+        border: 1px solid #ffffff3d;
+        border-radius: 10px;
+    }
+
+    .gt-container .gt-comment-body {
+        color: #c9d1d9 !important;
+    }
+}
