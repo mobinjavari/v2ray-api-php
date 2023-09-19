@@ -1,0 +1,242 @@
+[
+  {
+    "vmess": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%UUID%",
+            "alterId": 0
+          }
+        ],
+        "disableInsecureEncryption": false
+      },
+      "tcp": {
+        "header": {
+          "type": "none"
+        }
+      },
+      "ws": {
+        "path": "/",
+        "headers": {}
+      },
+      "url": {
+        "scheme": "vmess",
+        "host": {
+          "v": 2,
+          "ps": "%REMARK%",
+          "add": "%ADDRESS%",
+          "port": "%PORT%",
+          "id": "%USER%",
+          "aid": 0,
+          "net": "%TRANSMISSION%",
+          "type": "none",
+          "host": "",
+          "path": "/",
+          "tls": "none"
+        }
+      }
+    },
+    "vless": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%UUID%",
+            "flow": "xtls-rprx-direct"
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "tcp": {
+        "header": {
+          "type": "none"
+        }
+      },
+      "ws": {
+        "path": "/",
+        "headers": {}
+      },
+      "url": {
+        "scheme": "vless",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%USER%",
+        "query": "type=%TRANSMISSION%&security=none&path=/",
+        "fragment": "%REMARK%"
+      }
+    },
+    "trojan": {
+      "settings": {
+        "clients": [
+          {
+            "password": "%PASSWORD%",
+            "flow": "xtls-rprx-direct"
+          }
+        ],
+        "fallbacks": []
+      },
+      "tcp": {},
+      "ws": {},
+      "url": {
+        "scheme": "trojan",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%PASS%",
+        "query": "type=%TRANSMISSION%&security=tls",
+        "fragment": "%REMARK%"
+      }
+    }
+  },
+  {
+    "vmess": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%UUID%",
+            "alterId": 0,
+            "email": "%EMAIL%",
+            "limitIp": "%LIMIT_IP%",
+            "totalGB": "%TOTAL%",
+            "expiryTime": "%EXPIRY_TIME%",
+            "enable": "%ENABLE%",
+            "tgId": "",
+            "subId": ""
+          }
+        ],
+        "disableInsecureEncryption": false
+      },
+      "tcp": {
+        "acceptProxyProtocol": false,
+        "header": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "path": [
+              "/"
+            ],
+            "headers": {
+              "Host": [
+                "telewebion.com"
+              ]
+            }
+          },
+          "response": {
+            "version": "1.1",
+            "status": "200",
+            "reason": "OK",
+            "headers": {}
+          }
+        }
+      },
+      "ws": {
+        "acceptProxyProtocol": false,
+        "path": "/",
+        "headers": {}
+      },
+      "url": {
+        "scheme": "vmess",
+        "host": {
+          "v": 2,
+          "ps": "%EMAIL%",
+          "add": "%ADDRESS%",
+          "port": "%PORT%",
+          "id": "%USER%",
+          "aid": 0,
+          "net": "%TRANSMISSION%",
+          "type": "http",
+          "host": "telewebion.com",
+          "path": "/",
+          "tls": "none"
+        }
+      }
+    },
+    "vless": {
+      "settings": {
+        "clients": [
+          {
+            "id": "%UUID%",
+            "flow": "",
+            "email": "%EMAIL%",
+            "limitIp": "%LIMIT_IP%",
+            "totalGB": "%TOTAL%",
+            "expiryTime": "%EXPIRY_TIME%",
+            "enable": "%ENABLE%",
+            "tgId": "",
+            "subId": ""
+          }
+        ],
+        "decryption": "none",
+        "fallbacks": []
+      },
+      "tcp": {
+        "acceptProxyProtocol": false,
+        "header": {
+          "type": "http",
+          "request": {
+            "method": "GET",
+            "path": [
+              "/"
+            ],
+            "headers": {
+              "Host": [
+                "telewebion.com"
+              ]
+            }
+          },
+          "response": {
+            "version": "1.1",
+            "status": "200",
+            "reason": "OK",
+            "headers": {}
+          }
+        }
+      },
+      "ws": {
+        "acceptProxyProtocol": false,
+        "path": "/",
+        "headers": {}
+      },
+      "url": {
+        "scheme": "vless",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%USER%",
+        "query": "type=%TRANSMISSION%&host=%HEADER%&security=none&headerType=http&path=/",
+        "fragment": "%EMAIL%"
+      }
+    },
+    "trojan": {
+      "settings": {
+        "clients": [
+          {
+            "password": "%PASSWORD%",
+            "flow": "",
+            "email": "%EMAIL%",
+            "limitIp": "%LIMIT_IP%",
+            "totalGB": "%TOTAL%",
+            "expiryTime": "%EXPIRY_TIME%",
+            "enable": "%ENABLE%",
+            "tgId": "",
+            "subId": ""
+          }
+        ],
+        "fallbacks": []
+      },
+      "tcp": {
+        "acceptProxyProtocol": false,
+        "header": {
+          "type": "none"
+        }
+      },
+      "ws": {},
+      "url": {
+        "scheme": "trojan",
+        "host": "%ADDRESS%",
+        "port": "%PORT%",
+        "user": "%PASS%",
+        "query": "type=%TRANSMISSION%&security=tls&fp=&alpn=h2%2Chttp%2F1.1%2Ch3&sni=%ADDRESS%",
+        "fragment": "%EMAIL%"
+      }
+    }
+  }
+]
