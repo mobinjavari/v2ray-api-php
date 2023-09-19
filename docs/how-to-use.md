@@ -76,7 +76,7 @@ Guide to using properties
         <th>🧾 Description</th>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?id=status">status</a></td>
+        <td align="left"><a href="/how-to-use?id=status">status</a></td>
         <td>array</td>
         <td>It returns the status of the server, including upload and download information, etc. in the form of an array</td>
     </tr>
@@ -94,25 +94,25 @@ Guide to using functions
         <th>🧾 Description</th>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?id=set-default-protocol">setDefaultProtocol</a></td>
+        <td align="left"><a href="/how-to-use?id=set-default-protocol">setDefaultProtocol</a></td>
         <td><code>$protocol</code> (string)</td>
         <td>void</td>
         <td>Changing the default protocol value, values <code>vless</code> , <code>vmess</code> , <code>trojan</code> can be used.</td>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?set-default-transmission">setDefaultTransmission</a></td>
+        <td align="left"><a href="/how-to-use?set-default-transmission">setDefaultTransmission</a></td>
         <td><code>$transmission</code> (string)</td>
         <td>void</td>
         <td>Changing the default transmission value, <code>ws</code>, <code>tcp</code> values can be used.</td>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?set-default-header">setDefaultHeader</a></td>
+        <td align="left"><a href="/how-to-use?set-default-header">setDefaultHeader</a></td>
         <td><code>$header</code> (string)</td>
         <td>void</td>
         <td>To change the default header, used in the config link</td>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?id=set-sniffing">setSniffing</a></td>
+        <td align="left"><a href="/how-to-use?id=set-sniffing">setSniffing</a></td>
         <td>
             <code>$enable</code> (bool) <br>
             <code>$destOverride</code> (array)
@@ -121,7 +121,7 @@ Guide to using functions
         <td>Setting the sniffing value receives a boolean value in the first input and an array containing <code>http</code>, <code>tls</code>, <code>quic</code>... in the second input.</td>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?id=create-url">createUrl</a></td>
+        <td align="left"><a href="/how-to-use?id=create-url">createUrl</a></td>
         <td>
             <code>$where</code> (array)
             <br>
@@ -133,7 +133,7 @@ Guide to using functions
     <tr align="center"><td></td><td></td><td></td><td></td></tr>
     <tr align="center"><td></td><td></td><td></td><td></td></tr>
     <tr align="center">
-        <td align="left"><a href="?id=add">add</a></td>
+        <td align="left"><a href="/how-to-use?id=add">add</a></td>
         <td>
             <code>$total</code> (float)
             <br>
@@ -149,7 +149,7 @@ Guide to using functions
         <td>It is used to add a user to the panel, the <code>$total</code> input gets the volume in gigabytes, the input <code>$expiryDays</code> receives the expiration date as a number such as 30 days, the default value is 0, which means infinity., <code>$xuiRemark</code> input is <code>0</code> (Chinese,..) for panels.</td>
     </tr>
     <tr align="center">
-        <td align="left"><a href="?id=update">update</a></td>
+        <td align="left"><a href="/how-to-use?id=update">update</a></td>
         <td>
             <code>$update</code> (array)
             <br>
