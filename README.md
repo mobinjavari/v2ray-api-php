@@ -31,7 +31,7 @@
         </tr>
         <tr>
             <td><a href="class/xuiConnect.php">x-ui API</a></td>
-            <td>Multi API (x-ui + 3x-ui) <sup><a href="docs/HowToUse.md">doc...</a></sup></td>
+            <td>Multi API (x-ui + 3x-ui) <sup><a href="docs/fa_IR.md">doc...</a></sup></td>
             <td><a href="https://github.com/mobinjavari">mobinjavari</a></td>
         </tr>
     </table>
