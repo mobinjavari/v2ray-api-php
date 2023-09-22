@@ -13,19 +13,9 @@ class xuiConnect
     private string $address;
 
     /**
-     * @var string
+     * @var array
      */
-    public string $ipAddress;
-
-    /**
-     * @var string
-     */
-    private string $serverAddress;
-
-    /**
-     * @var string|null
-     */
-    private string|null $tunnelServerAddress;
+    private array $parseAddress;
 
     /**
      * @var string
@@ -72,14 +62,10 @@ class xuiConnect
         int   $panel = 0, # xui(0) - 3xui(1)
     )
     {
-        /* Tunnel Server Address */
-        $this->tunnelServerAddress = $this->addSlashUrl($tunnelServerAddress);
         /* Server Address */
-        $this->serverAddress = $this->addSlashUrl($serverAddress);
-        /* Current Server Address */
-        $this->address = $this->tunnelServerAddress ?? $this->serverAddress ?? '';
-        /* Current Server IP */
-        $this->ipAddress = gethostbyname(parse_url($this->address)['host'] ?? 'Invalid');
+        $this->address = xuiTools::formatServerUrl($tunnelServerAddress ?: $serverAddress ?: '');
+        /* Parse Server Address */
+        $this->parseAddress = parse_url($this->address) ?? [];
         /* Panel Username */
         $this->username = $username;
         /* Panel Password */
@@ -91,7 +77,6 @@ class xuiConnect
                 1 => 'panel',
                 default => 'xui'
             },
-            'SCHEME' => $this->getScheme(),
             'DEFAULTS' => [
                 'PROTOCOL' => 'vless',
                 'TRANSMISSION' => 'ws',
@@ -166,32 +151,12 @@ class xuiConnect
     }
 
     /**
-     * @param string|null $url
-     * @return string
+     * @return void
      */
-    private function getScheme(string $url = null): string
+    public function deleteCookie(): void
     {
-        $url = $url ?? $this->address;
-
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
-            $url = str_replace('api://', 'https://', $this->address);
-
-            if (curl_init($url)) return 'https';
-        }
-
-        return 'http';
-    }
-
-    /**
-     * @param string|null $url
-     * @return string|null
-     */
-    private function addSlashUrl(string|null $url): string|null
-    {
-        if (filter_var($url, FILTER_VALIDATE_URL))
-            return str_ends_with($url, '/') ? $url : "$url/";
-
-        return null;
+        if (isset($this->cookies['FILE']))
+            unlink($this->cookies['FILE']);
     }
 
     /**
@@ -204,9 +169,8 @@ class xuiConnect
         if (!is_dir($this->cookies['DIR'])) mkdir($this->cookies['DIR']);
 
         if (filter_var($this->address, FILTER_VALIDATE_URL)) {
-            $url = str_replace('api://', "{$this->settings['SCHEME']}://", $this->address);
             $options = [
-                CURLOPT_URL => $url . $method,
+                CURLOPT_URL =>  $this->address . $method,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_COOKIEFILE => $this->cookies['FILE'],
@@ -228,7 +192,7 @@ class xuiConnect
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
             curl_close($curl);
 
-            if ($httpCode != 200 && file_exists($this->cookies['FILE'])) unlink($this->cookies['FILE']);
+            if ($httpCode != 200) $this->deleteCookie();
 
             return match ($httpCode) {
                 200 => json_decode($response, true),
@@ -236,6 +200,7 @@ class xuiConnect
             };
         }
 
+        $this->deleteCookie();
         return xuiTools::httpStatus(400);
     }
 
@@ -244,14 +209,9 @@ class xuiConnect
      */
     private function login(): array
     {
-        $url = parse_url($this->address) ?? [];
-        $check = fsockopen(
-            $url['host'] ?? '',
-            $url['port'] ?? 443,
-            $errCode,
-            $errMessage,
-            5
-        );
+        $hostname = $this->parseAddress['host'] ?? '';
+        $port = $this->parseAddress['port'] ?? 443;
+        $check = fsockopen($hostname, $port, $errCode, $errMessage, 5);
 
         if ($check) {
             if (file_exists($this->cookies['FILE']))
@@ -263,11 +223,12 @@ class xuiConnect
                 'LoginSecret' => '',
             ]);
 
-            if (!$login['success'] && file_exists($this->cookies['FILE'])) unlink($this->cookies['FILE']);
+            if (!$login['success']) $this->deleteCookie();
 
             return $login;
         }
 
+        $this->deleteCookie();
         return xuiTools::httpStatus($errCode, $errMessage);
     }
 
@@ -289,7 +250,7 @@ class xuiConnect
      * @return array
      * @noinspection MethodShouldBeFinalInspection
      */
-        private function list(array $filters = []): array
+    private function list(array $filters = []): array
     {
         $list = $this->request("{$this->settings['ROOT']}/inbound/list");
 
@@ -313,24 +274,33 @@ class xuiConnect
                             /* $inbound Filter Status */
                             $inboundFilterStatus = true;
                             /* Inbound Result */
+                            $inboundUpload = $inbound['up'];
+                            $inboundDownload = $inbound['down'];
                             $inboundTotal = $inbound['total'];
-                            $inboundUsage = $inbound['up'] + $inbound['down'];
-                            $inboundUsagePercent = $inboundTotal ? ($inboundUsage * 100 / $inboundTotal) : 0;
-                            $inboundRem = $inboundTotal ? $inboundTotal - $inboundUsage : 0;
+                            $inboundUsage = $inboundUpload + $inboundDownload;
+                            $inboundRemaining = $inboundTotal ? $inboundTotal - $inboundUsage : 0;
                             $inboundExpiryTime = intval($inbound['expiryTime'] / 1000);
                             $inboundExpiryDays =
                                 $inboundExpiryTime ? round(($inboundExpiryTime - time()) / (60 * 60 * 24)) : 0;
+                            $inboundUsagePercent = $inboundTotal ? round($inboundUsage * 100 / $inboundTotal) : 0;
+                            $inboundUploadPercent = $inboundUsage ? round($inboundUpload * $inboundUsagePercent / $inboundUsage) : 0;
+                            $inboundPercents = [
+                                'up' => $inboundUploadPercent,
+                                'down' => $inboundUsagePercent - $inboundUploadPercent,
+                                'usage' => $inboundUsagePercent,
+                                'remaining' => 100 - $inboundUsagePercent,
+                            ];
                             $inboundResult = [
                                 'id' => $inbound['id'],
-                                'up' => $inbound['up'],
-                                'down' => $inbound['down'],
+                                'up' => $inboundUpload,
+                                'down' => $inboundDownload,
                                 'usage' => $inboundUsage,
-                                'usagePercent' => $inboundUsagePercent,
-                                'remaining' => $inboundRem,
+                                'remaining' => $inboundRemaining,
                                 'total' => $inboundTotal,
+                                'percents' => $inboundPercents,
                                 'expiryTime' => $inboundExpiryTime,
                                 'expiryDays' => $inboundExpiryDays,
-                                'panelType' => '3xui',
+                                'panelType' => $this->settings['ROOT'],
                                 'enable' => boolval($inbound['enable']),
                                 'port' => $inbound['port'],
                                 'protocol' => $inbound['protocol'],
@@ -358,20 +328,29 @@ class xuiConnect
                                         foreach ($clientStats as $state) {
                                             if ($state['email'] == $client['email']) {
                                                 /* Client Result */
+                                                $upload = $state['up'];
+                                                $download = $state['down'];
                                                 $total = $state['total'];
-                                                $usage = $state['up'] + $state['down'];
+                                                $usage = $upload + $download;
                                                 $remaining = $total ? $total - $usage : 0;
-                                                $usagePercent = $total ? $usage * 100 / $total : 0;
                                                 $expiryTime = $state['expiryTime'] ? intval($state['expiryTime'] / 1000) : 0;
                                                 $expiryDays = $expiryTime ? round(($expiryTime - time()) / (60 * 60 * 24)) : 0;
+                                                $usagePercent = $total ? round($usage * 100 / $total) : 0;
+                                                $uploadPercent = $usage ? round($upload * $usagePercent / $usage) : 0;
+                                                $percents = [
+                                                    'up' => $uploadPercent,
+                                                    'down' => $usagePercent - $uploadPercent,
+                                                    'usage' => $usagePercent,
+                                                    'remaining' => 100 - $usagePercent,
+                                                ];
                                                 $clientResult = [
                                                     'id' => $state['id'],
-                                                    'up' => $state['up'],
-                                                    'down' => $state['down'],
+                                                    'up' => $upload,
+                                                    'down' => $download,
                                                     'usage' => $usage,
-                                                    'usagePercent' => $usagePercent,
                                                     'remaining' => $remaining,
                                                     'total' => $total,
+                                                    'percents' => $percents,
                                                     'expiryTime' => $expiryTime,
                                                     'expiryDays' => $expiryDays,
                                                     'enable' => boolval($state['enable']),
@@ -379,13 +358,10 @@ class xuiConnect
                                                     'limitIp' => $client['limitIp'] ?? 0,
                                                     'subId' => $client['subId'] ?? '',
                                                 ];
-                                                $clientResult[match ($inboundResult['protocol']) {
-                                                    'trojan' => 'password',
-                                                    default => 'uuid'
-                                                }] = $client[match ($inboundResult['protocol']) {
-                                                    'trojan' => 'password',
-                                                    default => 'id'
-                                                }] ?? '';
+                                                $clientResult = array_merge($clientResult, match ($inboundResult['protocol']) {
+                                                    'trojan' => ['password' => $client['password']],
+                                                    default => ['uuid' => $client['id']]
+                                                });
                                                 /* Main Result */
                                                 $result[$listIndex++] = [
                                                     'inbound' => $inboundResult,
@@ -420,23 +396,32 @@ class xuiConnect
 
                             if ($filterStatus) {
                                 /* Inbound & User Result */
+                                $upload = $user['up'];
+                                $download = $user['down'];
                                 $total = $user['total'];
                                 $usage = $user['up'] + $user['down'];
                                 $remaining = $total ? $total - $usage : 0;
-                                $usagePercent = $total ? $usage * 100 / $total : 0;
                                 $expiryTime = intval($user['expiryTime'] / 1000);
                                 $expiryDays = $expiryTime ? round(($expiryTime - time()) / (60 * 60 * 24)) : 0;
+                                $usagePercent = $total ? round($usage * 100 / $total) : 0;
+                                $uploadPercent = $usage ? round($upload * $usagePercent / $usage) : 0;
+                                $percents = [
+                                    'up' => $uploadPercent,
+                                    'down' => $usagePercent - $uploadPercent,
+                                    'usage' => $usagePercent,
+                                    'remaining' => 100 - $usagePercent,
+                                ];
                                 $inboundResult = [
                                     'id' => $user['id'],
-                                    'up' => $user['up'],
-                                    'down' => $user['down'],
+                                    'up' => $upload,
+                                    'down' => $download,
                                     'usage' => $usage,
-                                    'usagePercent' => $usagePercent,
                                     'remaining' => $remaining,
                                     'total' => $total,
+                                    'percents' => $percents,
                                     'expiryTime' => $expiryTime,
                                     'expiryDays' => $expiryDays,
-                                    'panelType' => 'xui',
+                                    'panelType' => $this->settings['ROOT'],
                                     'enable' => boolval($user['enable']),
                                     'port' => $user['port'],
                                     'protocol' => $user['protocol'],
@@ -445,12 +430,12 @@ class xuiConnect
                                 ];
                                 $userResult = [
                                     'id' => $user['id'],
-                                    'up' => $user['up'],
-                                    'down' => $user['down'],
+                                    'up' => $upload,
+                                    'down' => $download,
                                     'usage' => $usage,
-                                    'usagePercent' => $usagePercent,
                                     'remaining' => $remaining,
-                                    'total' => $user['total'],
+                                    'total' => $total,
+                                    'percents' => $percents,
                                     'expiryTime' => $expiryTime,
                                     'expiryDays' => $expiryDays,
                                     'enable' => boolval($user['enable']),
@@ -458,13 +443,10 @@ class xuiConnect
                                     'limitIp' => 0,
                                     'subId' => '',
                                 ];
-                                $userResult[match ($inboundResult['protocol']) {
-                                    'trojan' => 'password',
-                                    default => 'uuid'
-                                }] = $settings[match ($inboundResult['protocol']) {
-                                    'trojan' => 'password',
-                                    default => 'id'
-                                }] ?? '';
+                                $userResult = array_merge($userResult, match ($inboundResult['protocol']) {
+                                    'trojan' => ['password' => $settings['password']],
+                                    default => ['uuid' => $settings['id']]
+                                });
                                 /* Main Result */
                                 $result[$listIndex++] = [
                                     'inbound' => $inboundResult,
@@ -487,22 +469,20 @@ class xuiConnect
      * @param string|null $protocol
      * @param string|null $transmission
      * @param array $replaces
-     * @return array|object
+     * @return array
      */
-    private function xuiConfig(string $protocol = null, string $transmission = null, array $replaces = []): array|object
+    private function xuiConfig(string $protocol = null, string $transmission = null, array $replaces = []): array
     {
-        $protocol = $protocol ?? $this->settings['DEFAULTS']['PROTOCOL'];
-        $transmission = $transmission ?? $this->settings['DEFAULTS']['TRANSMISSION'];
+        $protocol = $protocol ?: $this->settings['DEFAULTS']['PROTOCOL'];
+        $transmission = $transmission ?: $this->settings['DEFAULTS']['TRANSMISSION'];
         $configPath = __DIR__ . '/.xuiConfig.json';
 
         if (file_exists($configPath)) {
             $configJson = file_get_contents($configPath);
             $replaces['%HEADER%'] = $this->settings['DEFAULTS']['HEADER'];
 
-            foreach ($replaces as $replace) {
-                $key = $replace['key'] ?? false;
-                $value = $replace['value'] ?? false;
-                $configJson = str_replace($key, $value, $configJson);
+            foreach ($replaces as $replaceKey => $replaceValue) {
+                $configJson = str_replace($replaceKey, $replaceValue, $configJson);
             }
 
             $configData = json_decode($configJson);
@@ -555,8 +535,8 @@ class xuiConnect
      */
     private function getInbound(string $protocol = null, string $transmission = null, int $port = null): array
     {
-        $protocol = $protocol ?? $this->settings['DEFAULTS']['PROTOCOL'];
-        $transmission = $transmission ?? $this->settings['DEFAULTS']['TRANSMISSION'];
+        $protocol = $protocol ?: $this->settings['DEFAULTS']['PROTOCOL'];
+        $transmission = $transmission ?: $this->settings['DEFAULTS']['TRANSMISSION'];
 
         switch ($this->settings['TYPE']) {
             case 1:
@@ -583,13 +563,13 @@ class xuiConnect
                 $email = xuiTools::randStr(8);
                 $remark = 'API-' . strtoupper($protocol) . '-' . strtoupper($transmission);
                 $replaces = [
-                    ['key' => '%UUID%', 'value' => $uuid],
-                    ['key' => '%EMAIL%', 'value' => $email],
-                    ['key' => '%LIMIT_IP%', 'value' => 0],
-                    ['key' => '%TOTAL%', 'value' => 0],
-                    ['key' => '%EXPIRY_TIME%', 'value' => 0],
-                    ['key' => '%PASSWORD%', 'value' => $password],
-                    ['key' => '%ENABLE%', 'value' => true],
+                    '%UUID%' => $uuid,
+                    '%EMAIL%' => $email,
+                    '%LIMIT_IP%' => 0,
+                    '%TOTAL%' => 0,
+                    '%EXPIRY_TIME%' => 0,
+                    '%PASSWORD%' => $password,
+                    '%ENABLE%' => true,
                 ];
                 $config = $this->xuiConfig($protocol, $transmission, $replaces);
 
@@ -659,24 +639,24 @@ class xuiConnect
         $email = xuiTools::randStr(8);
         $password = xuiTools::randStr();
         $xuiPort = $this->randPort();
-        $xuiRemark = $xuiRemark ?? xuiTools::randStr(5);
+        $xuiRemark = $xuiRemark ?: xuiTools::randStr(5);
         $total *= (1024 * 1024 * 1024);
         $expiryDays = ($expiryDays * 60 * 60 * 24);
         $expiryDays = match ($this->settings['TYPE']) {
             1 => $expiryDays * -1000,
-            default => time() + $expiryDays * 1000
+            default => (time() + $expiryDays) * 1000
         };
-        $protocol = $protocol ?? $this->settings['DEFAULTS']['PROTOCOL'];
+        $protocol = $protocol ?: $this->settings['DEFAULTS']['PROTOCOL'];
         $transmission =
             ($protocol == 'trojan') ? 'tcp' : ($transmission ?? $this->settings['DEFAULTS']['TRANSMISSION']);
         $replaces = [
-            ['key' => '%UUID%', 'value' => $uuid],
-            ['key' => '%PASSWORD%', 'value' => $password],
-            ['key' => '%EMAIL%', 'value' => $email],
-            ['key' => '%LIMIT_IP%', 'value' => 0],
-            ['key' => '%TOTAL%', 'value' => $total],
-            ['key' => '"%EXPIRY_TIME%"', 'value' => $expiryDays],
-            ['key' => '%ENABLE%', 'value' => true],
+            '%UUID%' => $uuid,
+            '%PASSWORD%' => $password,
+            '%EMAIL%' => $email,
+            '%LIMIT_IP%' => 0,
+            '%TOTAL%' => $total,
+            '"%EXPIRY_TIME%"' => $expiryDays,
+            '%ENABLE%' => true,
         ];
         $config = $this->xuiConfig($protocol, $transmission, $replaces);
 
@@ -755,17 +735,25 @@ class xuiConnect
         $usersList = $this->list($where);
 
         if ($usersList['success']) {
+            $updateError = 0;
+            $result = [
+                'success' => true,
+                'msg' => 'Update Successfully',
+                'obj' => []
+            ];
+
             foreach ($usersList['obj'] as $data) {
                 $inboundId = $data['inbound']['id'] ?? null;
                 $userId = $data['user']['id'] ?? null;
-                $upload = $update['resetUsage'] ? 0 : ($data['user']['up'] ?? 0);
-                $download = $update['resetUsage'] ? 0 : ($data['user']['down'] ?? 0);
+                $resetUsage = $update['resetUsage'] ?? false;
+                $upload = $resetUsage ? 0 : ($data['user']['up'] ?? 0);
+                $download = $resetUsage ? 0 : ($data['user']['down'] ?? 0);
                 $protocol = $data['inbound']['protocol'] ?? null;
                 $transmission = $data['inbound']['transmission'] ?? null;
-                $uuid = $data['user']['uuid'] ?? xuiTools::randUUID();
-                $password = $data['user']['password'] ?? xuiTools::randStr();
-                $email = $data['user']['email'] ?? null;
-                $expiryTime = (isset($update['expiryTime']) ? $update['expiryTime'] * 1000 : $data['user']['expiryTime']) ?? 0;
+                $uuid = $data['user']['uuid'] ?? false ?: xuiTools::randUUID();
+                $password = $data['user']['password'] ?? false ?: xuiTools::randStr();
+                $email = $data['user']['email'] ?? false ?: xuiTools::randStr(8);
+                $expiryTime = ($update['expiryTime'] ?? $data['user']['expiryTime'] ?? 0) * 1000;
                 $total = (isset($update['total']) ? $update['total'] * (1024 * 1024 * 1024) : $data['user']['total']) ?? 0;
                 $limitIp = $update['limitIp'] ?? $data['user']['limitIp'] ?? 0;
                 $enable = $update['enable'] ?? $data['user']['enable'] ?? false;
@@ -784,31 +772,36 @@ class xuiConnect
                     return xuiTools::httpStatus(400, 'Bad Request - The port value must be of type int');
 
                 $replaces = [
-                    ['key' => '%UUID%', 'value' => $uuid],
-                    ['key' => '%EMAIL%', 'value' => $email],
-                    ['key' => '%LIMIT_IP%', 'value' => $limitIp],
-                    ['key' => '%TOTAL%', 'value' => $total],
-                    ['key' => '"%EXPIRY_TIME%"', 'value' => $expiryTime],
-                    ['key' => '%ENABLE%', 'value' => $enable],
+                    '%UUID%' => $uuid,
+                    '%EMAIL%' => $email,
+                    '%LIMIT_IP%' => $limitIp,
+                    '%TOTAL%' => $total,
+                    '"%EXPIRY_TIME%"' => $expiryTime,
+                    '%ENABLE%' => $enable,
                 ];
                 $config = $this->xuiConfig($protocol, $transmission, $replaces);
 
                 if ($config['success']) {
                     $config = $config['obj'];
-                    $method = match ($protocol) {
-                        'vmess' => $config->vmess,
-                        'trojan' => $config->trojan,
-                        default /* vless */ => $config->vless
-                    };
 
                     switch ($this->settings['TYPE']) {
                         case 1:
                             $updateParam = [
                                 'id' => $inboundId,
-                                'settings' => json_encode($method->settings)
+                                'settings' => json_encode($config['settings'])
                             ];
-                            $sendUpdate =
+                            $updateResult =
                                 $this->request("{$this->settings['ROOT']}/inbound/updateClient/$uuid", $updateParam);
+                            $updateResult['obj'] = match ($protocol) {
+                                'trojan' => [
+                                    'password' => $password,
+                                    'email' => $email,
+                                ],
+                                default => [
+                                    'uuid' => $uuid,
+                                    'email' => $email,
+                                ]
+                            };
                             break;
 
                         default:
@@ -822,29 +815,37 @@ class xuiConnect
                                 'listen' => '',
                                 'port' => $port,
                                 'protocol' => $protocol,
-                                'settings' => json_encode($method->settings),
-                                'streamSettings' => json_encode($method->streamSettings($protocol, $transmission)),
+                                'settings' => json_encode($config['settings']),
+                                'streamSettings' => json_encode($config['streamSettings']),
                                 'sniffing' => json_encode($this->settings['SNIFFING'])
                             ];
-                            $sendUpdate =
+                            $updateResult =
                                 $this->request("{$this->settings['ROOT']}/inbound/update/$userId", $updateParam);
+                            $updateResult['obj'] = match ($protocol) {
+                                'trojan' => [
+                                    'password' => $password,
+                                    'port' => $port,
+                                ],
+                                default => [
+                                    'uuid' => $uuid,
+                                    'port' => $port,
+                                ]
+                            };
                             break;
                     }
 
-                    $sendUpdate['obj'] = match ($protocol) {
-                        'trojan' => [
-                            'password' => $password,
-                            'email' => $email,
-                        ],
-                        default => [
-                            'uuid' => $uuid,
-                            'email' => $email,
-                        ]
-                    };
+                    if (!$updateResult['success']) {
+                        $result['success'] = false;
+                        $result['msg'] = ++$updateError . " Error during update";
+                    }
 
-                    return $sendUpdate;
+                    $result['obj'][] = $updateResult;
+                } else {
+                    return $config;
                 }
             }
+
+            return xuiTools::httpStatus($result['success'] ? 200 : 400, $result['msg'], $result['obj']);
         }
 
         return $usersList;
@@ -857,28 +858,27 @@ class xuiConnect
      */
     public function createUrl(array $where, string $customRemark = null): array
     {
-        $address = $this->address;
+        $address = parse_url($this->address)['host'] ?? $this->address;
         $user = $this->list($where);
 
         if ($user['success']) {
             $user = $user['obj'][0];
             $email = $user['user']['email'] ?? '';
-            $protocol = $user['user']['protocol'] ?? '';
+            $protocol = $user['inbound']['protocol'] ?? '';
             $port = $user['inbound']['port'] ?? '';
             $remark = $customRemark ?? $user['inbound']['remark'] ?? '';
             $transmission = $user['inbound']['transmission'] ?? '';
+            $uuid = $user['user']['uuid'] ?? '';
+            $password = $user['user']['password'] ?? '';
             $replaces = [
-                ['key' => '%REMARK%', 'value' => $remark],
-                ['key' => '%EMAIL%', 'value' => $email],
-                ['key' => '%ADDRESS%', 'value' => $address],
-                ['key' => '%PORT%', 'value' => $port],
-                ['key' => '%TRANSMISSION%', 'value' => $transmission],
+                '%USER%' => $uuid,
+                '%PASS%' => $password,
+                '%REMARK%' => $remark,
+                '%EMAIL%' => $email,
+                '%ADDRESS%' => $address,
+                '%PORT%' => $port,
+                '%TRANSMISSION%' => $transmission,
             ];
-            $input = match ($transmission) {
-                'trojan' => [['key' => '%PASS%', 'value' => $user['inbound']['password']]],
-                default =>  [['key' => '%USER%', 'value' => $user['inbound']['uuid']]]
-            };
-            $replaces = array_merge($replaces, $input);
             $config = $this->xuiConfig($protocol, $transmission, $replaces);
 
             if ($config['success']) {
@@ -928,52 +928,115 @@ class xuiConnect
      */
     public function fetch(array $where): array
     {
-        $url = $this->createURL($where);
+        $createUrl = $this->createURL($where);
 
-        if ($url['success']) {
-            $url = $url['obj']['url'];
-            $user['url'] = $url;
-            $user['qrcode'] = xuiTools::genQRCode($url);
+        if ($createUrl['success']) {
+            $url = $createUrl['obj']['url'];
+            $qrcode = xuiTools::genQRCode($url);
 
-            return [
-                'success' => true,
-                'msg' => 'User found successfully',
-                'obj' => $user
-            ];
+            if ($qrcode['success']) {
+                $qrcode = $qrcode['obj'];
+                $user = $this->list($where);
+
+                if ($user['success']) {
+                    $user = $user['obj'][0];
+                    $user['user']['url'] = $url;
+                    $user['user']['qrcode'] = $qrcode;
+
+                    return [
+                        'success' => true,
+                        'msg' => 'User found successfully',
+                        'obj' => $user
+                    ];
+                }
+
+                return $user;
+            }
+
+            return $qrcode;
         }
 
-        return $url;
+        return $createUrl;
     }
 
     /**
      * @param array $where
+     * @param int|null $toDate
      * @return array
      */
     public function delete(array $where, int $toDate = null): array
     {
-        $users = $this->list($where);
+        $usersList = $this->list($where);
 
-        if ($users['success']) {
-            foreach ($users['obj'] as $user) {
-                if (is_null($toDate) ||
-                    $user['user']['expiryTime'] &&
-                    $toDate &&
-                    $user['user']['expiryTime'] <= $toDate
-                ) {
-                    $key = match ($user['inbound']['protocol']) {
-                        'trojan' => $user['user']['password'],
-                        default => $user['user']['uuid']
-                    };
-                    $deleteMethod = match ($this->settings['TYPE']) {
-                        1 => "inbound/{$user['inbound']['id']}/delClient/$key",
-                        default => "inbound/del/$key"
-                    };
+        if ($usersList['success']) {
+            $deleteError = 0;
+            $result = [
+                'success' => true,
+                'msg' => 'Delete Successfully',
+                'obj' => []
+            ];
+
+            foreach ($usersList['obj'] as $user) {
+                $checkToDate = is_null($toDate);
+                $checkLimited = $user['user']['expiryTime'];
+                $checkDate = $user['user']['expiryTime'] <= $toDate;
+
+                if ($checkToDate || ($checkLimited && $checkDate)) {
+                    $protocol = $user['inbound']['protocol'] ?? '';
+                    $port = $user['inbound']['port'] ?? '';
+                    $uuid = $user['user']['uuid'] ?? '';
+                    $password = $user['user']['password'] ?? '';
+                    $email = $user['user']['email'] ?? '';
+
+                    switch ($this->settings['TYPE']) {
+                        case 1:
+                            $userKey = match ($protocol) {
+                                'trojan' => $user['user']['password'],
+                                default => $user['user']['uuid']
+                            };
+                            $inboundId = $user['inbound']['id'];
+                            $deleteResult =
+                                $this->request("{$this->settings['ROOT']}/inbound/$inboundId/delClient/$userKey");
+                            $deleteResult['obj'] = match ($protocol) {
+                                'trojan' => [
+                                    'password' => $password,
+                                    'email' => $email,
+                                ],
+                                default => [
+                                    'uuid' => $uuid,
+                                    'email' => $email,
+                                ]
+                            };
+                            break;
+
+                        default:
+                            $userKey = $user['user']['id'];
+                            $deleteResult = $this->request("{$this->settings['ROOT']}/inbound/del/$userKey");
+                            $deleteResult['obj'] = match ($protocol) {
+                                'trojan' => [
+                                    'password' => $password,
+                                    'port' => $port,
+                                ],
+                                default => [
+                                    'uuid' => $uuid,
+                                    'port' => $port,
+                                ]
+                            };
+                    }
+
+                    if (!$deleteResult['success']) {
+                        $result['success'] = false;
+                        $result['msg'] = ++$deleteError . " Error during update";
+                    }
+
+                    $result['obj'][] = $deleteResult;
                 }
             }
-            return $this->request("{$this->settings['PANEL']}/$deleteMethod");
+
+            return $result;
         }
 
-        return $users;
+        return $usersList;
     }
 
     /**
@@ -986,11 +1049,7 @@ class xuiConnect
         if ($status['success']) {
             $status = $status['obj'];
 
-            return [
-                'success' => true,
-                'msg' => 'Server status',
-                'obj' => $status
-            ];
+            return xuiTools::httpStatus(200, 'Server status', $status);
         }
 
         return $status;
@@ -1007,18 +1066,18 @@ class xuiTools
     public static function genQRCode(string $text, string $htmlClassName = ''): array
     {
         $text = urlencode($text);
-        $url = [
+        $parseUrl = [
             'scheme' => 'https',
             'host' => 'quickchart.io',
             'path' => '/qr',
             'query' => "text=$text&margin=3&size=1080&format=svg&dark=523489&ecLevel=L",
         ];
-        $code = self::buildUrl($url);
+        $url = self::buildUrl($parseUrl);
 
         return self::httpStatus(200, 'Create QR Code Successfully', [
-            'url' => $code,
-            'html' => "<img src='$code' alt='$text' class='$htmlClassName' title='QR CODE'>",
-            'svg' => file_get_contents($code)
+            'url' => $url,
+            'html' => "<img src='$url' alt='$text' class='$htmlClassName' title='QR CODE'>",
+            'svg' => file_get_contents($url) ?? 'Invalid'
         ]);
     }
 
@@ -1027,7 +1086,7 @@ class xuiTools
      * @return string
      */
     public static function buildUrl(array $data = [
-        'scheme' => 'vless ',
+        'scheme' => 'vless',
         'user' => 'user',
         'host' => 'example.org',
         'port' => 1111,
@@ -1131,12 +1190,14 @@ class xuiTools
     }
 
     /**
-     * @param string $ipAddress
+     * @param string $address
+     * @param bool $isDomain
      * @return array
      */
-    public static function getIPAddressLocation(string $ipAddress): array
+    public static function getIPAddressLocation(string $address, bool $isDomain = false): array
     {
-        $url = "http://ip-api.com/json/$ipAddress";
+        $address = $isDomain ? (gethostbyname($address) ?: 'Invalid') : $address;
+        $url = "http://ip-api.com/json/$address";
         $countries = [
             'Afghanistan' => [
                 '🇦🇫',
@@ -1281,7 +1342,7 @@ class xuiTools
             }
         }
 
-        return self::httpStatus(400, 'IP Location Not Found');
+        return self::httpStatus(404, 'IP Location Not Found');
     }
 
     /**
@@ -1410,6 +1471,33 @@ class xuiTools
         }
 
         return $randStr;
+    }
+
+    /**
+     * @param string $url
+     * @return string
+     */
+    public static function formatServerUrl(string $url): string
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            $addSlashUrl = str_ends_with($url, '/') ? $url : "$url/";
+            $httpsUrl = str_replace('api://', 'https://', $addSlashUrl);
+            $options = [
+                CURLOPT_URL => $httpsUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FAILONERROR => true,
+            ];
+            $curl = curl_init();
+            curl_setopt_array($curl, $options);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            curl_close($curl);
+
+            if ($httpCode && $httpCode < 300) return $httpsUrl;
+
+            return str_replace('https://', 'http://', $httpsUrl); # http url
+        }
+
+        return '';
     }
 
     /**
