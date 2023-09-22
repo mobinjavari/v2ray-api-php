@@ -22,7 +22,7 @@
       "url": {
         "scheme": "vmess",
         "host": {
-          "v": 2,
+          "v": "2",
           "ps": "%REMARK%",
           "add": "%ADDRESS%",
           "port": "%PORT%",

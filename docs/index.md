@@ -14,7 +14,7 @@ The options that this class provides you :
 * Get user information + QR and link
 * Get server status 
 * Delete the user from the server
-* ... some useful functions to convert time and volume formats
+* Some useful functions to convert time and volume formats...
   
 <br><br><br>
 
