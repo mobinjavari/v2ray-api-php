@@ -20,6 +20,10 @@ section.cover {
     margin: 6px;
 }
 
+.sidebar-toggle span {
+    border-radius: 20px;
+}
+
 .sidebar ul li a {
     font-size: 16px;
 }
