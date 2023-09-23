@@ -362,6 +362,7 @@ echo(xuiTools::buildUrl($parseUrl));
 ```
 
 * ### <small>Read Url</small>
+
 ```php
 $url = 'vless://user@example.org:1111?query#remark';
 
