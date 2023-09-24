@@ -155,7 +155,7 @@ class xuiConnect
      */
     public function deleteCookie(): void
     {
-        if (isset($this->cookies['FILE']))
+        if (file_exists($this->cookies['FILE']))
             unlink($this->cookies['FILE']);
     }
 
