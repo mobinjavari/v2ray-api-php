@@ -13,6 +13,11 @@ class xuiConnect
     private string $address;
 
     /**
+     * @var string
+     */
+    private string $serverAddress;
+    
+    /**
      * @var array
      */
     private array $parseAddress;
@@ -63,6 +68,7 @@ class xuiConnect
     )
     {
         /* Server Address */
+        $this->serverAddress = $serverAddress;
         $this->address = xuiTools::formatServerUrl($tunnelServerAddress ?: $serverAddress ?: '');
         /* Parse Server Address */
         $this->parseAddress = parse_url($this->address) ?? [];
@@ -858,7 +864,7 @@ class xuiConnect
      */
     public function createUrl(array $where, string $customRemark = null): array
     {
-        $address = parse_url($this->address)['host'] ?? $this->address;
+        $address = parse_url($this->serverAddress)['host'] ?? $this->serverAddress;
         $user = $this->list($where);
 
         if ($user['success']) {
