@@ -792,6 +792,10 @@ class xuiConnect
 
                     switch ($this->settings['TYPE']) {
                         case 1:
+                            if ($resetUsage) {
+                                $this->request("{$this->settings['ROOT']}/inbound/$inboundId/resetClientTraffic/$email", []);
+                            }
+                        
                             $updateParam = [
                                 'id' => $inboundId,
                                 'settings' => json_encode($config['settings'])
@@ -1487,20 +1491,29 @@ class xuiTools
     {
         if (filter_var($url, FILTER_VALIDATE_URL)) {
             $addSlashUrl = str_ends_with($url, '/') ? $url : "$url/";
-            $httpsUrl = str_replace('api://', 'https://', $addSlashUrl);
-            $options = [
-                CURLOPT_URL => $httpsUrl,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FAILONERROR => true,
-            ];
-            $curl = curl_init();
-            curl_setopt_array($curl, $options);
-            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            curl_close($curl);
 
-            if ($httpCode && $httpCode < 300) return $httpsUrl;
+            if (str_starts_with($addSlashUrl, 'api://')) {
+                $sslUrl = str_replace('api://', 'ssl://', $addSlashUrl);
+                $httpsUrl = str_replace('ssl://', 'https://', $sslUrl);
+                $httpUrl = str_replace('https://', 'http://', $httpsUrl);
+                $conText = stream_context_create(['ssl' => ['capture_peer_cert' => true]]);
+                $stream = stream_socket_client($sslUrl, $errNo, $errMg, 2, STREAM_CLIENT_CONNECT, $conText);
 
-            return str_replace('https://', 'http://', $httpsUrl); # http url
+                if (!$stream) {
+                    return $httpUrl; // SSL connection failed
+                }
+
+                $params = stream_context_get_params($stream);
+                $cert = $params['options']['ssl']['peer_certificate'];
+
+                if (!$cert) {
+                    return $httpUrl; // No SSL certificate found
+                }
+
+                return $httpsUrl; // SSL certificate found
+            }
+
+            return $addSlashUrl;
         }
 
         return '';
