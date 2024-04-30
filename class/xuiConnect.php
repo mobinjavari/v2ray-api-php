@@ -764,7 +764,7 @@ class xuiConnect
                 $limitIp = $update['limitIp'] ?? $data['user']['limitIp'] ?? 0;
                 $enable = $update['enable'] ?? $data['user']['enable'] ?? false;
                 $remark = $update['remark'] ?? $data['inbound']['remark'] ?? xuiTools::randStr(4);
-                $port = $update['port'] ?? $data['port'] ?? $this->randPort();
+                $port = $update['port'] ?? $data['inbound']['port'] ?? $this->randPort();
 
                 if (!is_numeric($expiryTime))
                     return xuiTools::httpStatus(400, 'Bad Request - The expiryTime value must be of type int');
