@@ -1,5 +1,6 @@
 <div align="center">
   <h1>V2Ray API with PHP</h1>
+  <p><a href="https://t.me/xQuerySupport">Contact me</a> to participate in project development or become a sponsor</p>
   <img src="./docs/_media/map.svg">
   <p>A functional class for X-UI & <a href="https://github.com/MHSanaei/3x-ui">3X-UI</a></p>
   <p>Read more from me here : 👉 <small><a href="https://mobinjavari.github.io/v2ray-api-php/">Document</a></small> 👈</p>
