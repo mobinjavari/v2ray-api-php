@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>X-UI API with PHP</h1>
+    <h1>3X-UI API with PHP</h1>
     <p><a href="https://t.me/xQueryTeam?direct">Contact me</a> to participate in project development or become a sponsor</p>
     <img src="./docs/_media/map.svg">
     <p>A functional class for <a href="https://github.com/MHSanaei/3x-ui/">3X-UI</a> API</p>
